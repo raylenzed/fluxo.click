@@ -10,6 +10,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ProxyGroupDialog } from "@/components/policy/proxy-group-dialog";
+import { ProxyNodeDialog } from "@/components/proxy/proxy-node-dialog";
 
 // Mock data
 const proxyNodes = [
@@ -160,6 +161,7 @@ export default function PoliciesPage() {
   const [outboundMode, setOutboundMode] = useState("rule");
   const [editingGroup, setEditingGroup] = useState<string | null>(null);
   const [showNewGroup, setShowNewGroup] = useState(false);
+  const [showAddNode, setShowAddNode] = useState(false);
 
   return (
     <div className="flex flex-col h-full">
@@ -204,7 +206,7 @@ export default function PoliciesPage() {
             ))}
             <button
               className="flex flex-col items-center justify-center rounded-[16px] border-2 border-dashed border-[var(--border)] p-3 text-[var(--muted)] hover:border-[var(--brand-400)] hover:text-[var(--brand-500)] transition-all min-h-[80px]"
-              onClick={() => {}}
+              onClick={() => setShowAddNode(true)}
             >
               <Plus className="h-5 w-5" />
               <span className="text-xs mt-1">Add Node</span>
@@ -242,6 +244,10 @@ export default function PoliciesPage() {
         open={showNewGroup || editingGroup !== null}
         onClose={() => { setShowNewGroup(false); setEditingGroup(null); }}
         groupName={editingGroup ?? undefined}
+      />
+      <ProxyNodeDialog
+        open={showAddNode}
+        onClose={() => setShowAddNode(false)}
       />
     </div>
   );

@@ -1,0 +1,64 @@
+import axios from 'axios';
+import { getDb } from '../../database/db';
+
+function getMihomoConfig(): { apiUrl: string; secret: string } {
+  const db = getDb();
+  const apiUrlRow = db.prepare("SELECT value FROM settings WHERE key = 'mihomo.external_controller'").get() as
+    | { value: string }
+    | undefined;
+  const secretRow = db.prepare("SELECT value FROM settings WHERE key = 'mihomo.secret'").get() as
+    | { value: string }
+    | undefined;
+  const host = apiUrlRow ? JSON.parse(apiUrlRow.value) : '127.0.0.1:9090';
+  const secret = secretRow ? JSON.parse(secretRow.value) : '';
+  return { apiUrl: `http://${host}`, secret };
+}
+
+function getHeaders(secret: string): Record<string, string> {
+  const h: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (secret) h['Authorization'] = `Bearer ${secret}`;
+  return h;
+}
+
+export async function getMihomoVersion() {
+  const { apiUrl, secret } = getMihomoConfig();
+  const res = await axios.get(`${apiUrl}/version`, { headers: getHeaders(secret) });
+  return res.data;
+}
+
+export async function getMihomoStatus() {
+  const { apiUrl, secret } = getMihomoConfig();
+  try {
+    const version = await axios.get(`${apiUrl}/version`, { headers: getHeaders(secret) });
+    return { running: true, version: version.data.version };
+  } catch {
+    return { running: false, version: null };
+  }
+}
+
+export async function reloadConfig(configPath: string) {
+  const { apiUrl, secret } = getMihomoConfig();
+  await axios.put(`${apiUrl}/configs`, { path: configPath }, { headers: getHeaders(secret) });
+}
+
+export async function getMihomoConnections() {
+  const { apiUrl, secret } = getMihomoConfig();
+  const res = await axios.get(`${apiUrl}/connections`, { headers: getHeaders(secret) });
+  return res.data;
+}
+
+export async function closeConnection(id: string) {
+  const { apiUrl, secret } = getMihomoConfig();
+  await axios.delete(`${apiUrl}/connections/${id}`, { headers: getHeaders(secret) });
+}
+
+export async function closeAllConnections() {
+  const { apiUrl, secret } = getMihomoConfig();
+  await axios.delete(`${apiUrl}/connections`, { headers: getHeaders(secret) });
+}
+
+export async function getTrafficStats() {
+  const { apiUrl, secret } = getMihomoConfig();
+  const res = await axios.get(`${apiUrl}/traffic`, { headers: getHeaders(secret) });
+  return res.data;
+}

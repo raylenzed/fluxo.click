@@ -1,0 +1,63 @@
+version: "3.9"
+
+# ============================================================
+# Mihomo Party — Docker Compose
+# ============================================================
+# Usage:
+#   docker compose up -d
+#
+# Prerequisites on the host:
+#   • Mihomo is running on the host (external-controller: 0.0.0.0:9090)
+#   • /etc/mihomo/config.yaml exists
+#
+# Ports exposed:
+#   8080  Web UI  (Next.js)
+#   8090  API     (Fastify)
+# ============================================================
+
+services:
+  mihomo-party:
+    image: mihomo-party:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mihomo-party
+    restart: unless-stopped
+
+    ports:
+      - "${WEB_PORT:-8080}:8080"    # Web UI  (Next.js)
+      - "${SERVER_PORT:-8090}:8090" # API Server (Fastify)
+
+    volumes:
+      - /etc/mihomo:/etc/mihomo:ro        # Mihomo config (read-only from container)
+      - mihomo_party_data:/data           # Persistent SQLite DB + uploads
+
+    environment:
+      - NODE_ENV=production
+      - DB_PATH=/data/mihomo-party.db
+      - WEB_PORT=8080
+      - SERVER_PORT=8090
+      # Point to Mihomo running on the host (or another container)
+      - MIHOMO_API_URL=${MIHOMO_API_URL:-http://host-gateway:9090}
+      - MIHOMO_SECRET=${MIHOMO_SECRET:-}
+
+    # Lets the container reach the host via "host-gateway"
+    extra_hosts:
+      - "host-gateway:host-gateway"
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8090/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  mihomo_party_data:
+    driver: local
