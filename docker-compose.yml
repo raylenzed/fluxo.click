@@ -29,12 +29,13 @@ services:
       - "${SERVER_PORT:-8090}:8090" # API Server (Fastify)
 
     volumes:
-      - /etc/mihomo:/etc/mihomo:ro        # Mihomo config (read-only from container)
+      - /etc/mihomo:/etc/mihomo          # Mihomo config (read-write so Fluxo can apply config)
       - fluxo_data:/data                 # Persistent SQLite DB + uploads
 
     environment:
       - NODE_ENV=production
       - DB_PATH=/data/fluxo.db
+      - CONFIG_PATH=/etc/mihomo/config.yaml
       - WEB_PORT=8080
       - SERVER_PORT=8090
       # Point to Mihomo running on the host (or another container)

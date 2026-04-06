@@ -56,12 +56,27 @@ export async function generateConfig(): Promise<string> {
     return base;
   });
 
+  // Load rule providers
+  const ruleProviderRows = db.prepare('SELECT * FROM rule_providers').all() as any[];
+  const ruleProviders: Record<string, unknown> = {};
+  for (const rp of ruleProviderRows) {
+    ruleProviders[rp.name] = {
+      type: rp.type,
+      behavior: rp.behavior,
+      ...(rp.url ? { url: rp.url } : {}),
+      path: rp.path || `./rule-providers/${rp.name}.yaml`,
+      interval: rp.interval || 86400,
+    };
+  }
+
   // Load rules
   const ruleRows = db.prepare('SELECT * FROM rules ORDER BY sort_order').all() as any[];
   const rules = ruleRows.map(row => {
     if (row.type === 'FINAL') return `MATCH,${row.policy}`;
+    if (row.type === 'RULE-SET') return `RULE-SET,${row.value},${row.policy}`;
     if (!row.value) return `${row.type},${row.policy}`;
     const parts = [row.type, row.value, row.policy];
+    // notify column stores the "no-resolve" flag for IP-type rules
     if (row.notify) parts.push('no-resolve');
     return parts.join(',');
   });
@@ -82,30 +97,45 @@ export async function generateConfig(): Promise<string> {
 
   // TUN section
   const tunEnable = settings['tun.enable'] === true || settings['tun.enable'] === 'true';
+  // tun.dns_hijack may be stored as JSON array string or plain string
+  const rawDnsHijack = (settings['tun.dns_hijack'] as string) ?? '["any:53"]';
+  let dnsHijackArr: string[];
+  try {
+    const parsed = JSON.parse(rawDnsHijack);
+    dnsHijackArr = Array.isArray(parsed) ? parsed : [String(parsed)];
+  } catch {
+    dnsHijackArr = rawDnsHijack.split(',').map((s: string) => s.trim()).filter(Boolean);
+  }
   config['tun'] = {
     enable: tunEnable,
     stack: settings['tun.stack'] ?? 'system',
     'auto-route': settings['tun.auto_route'] ?? true,
     'auto-redirect': false,
-    'dns-hijack': JSON.parse((settings['tun.dns_hijack'] as string) ?? '["any:53"]'),
+    'dns-hijack': dnsHijackArr,
   };
 
   // DNS section
   if (dnsRow) {
-    config['dns'] = {
+    // Use mode column directly; fall back to enhanced_mode boolean for legacy rows
+    const dnsMode = dnsRow.mode || (dnsRow.enhanced_mode ? 'fake-ip' : 'normal');
+    const dns: Record<string, unknown> = {
       enable: Boolean(dnsRow.enable),
-      'enhanced-mode': dnsRow.enhanced_mode ? 'fake-ip' : 'normal',
-      'fake-ip-range': '198.18.0.0/15',
-      'fake-ip-filter': JSON.parse(dnsRow.fake_ip_filter || '[]'),
+      'enhanced-mode': dnsMode,
       nameserver: JSON.parse(dnsRow.nameservers || '[]'),
       fallback: JSON.parse(dnsRow.fallback_dns || '[]'),
       'use-hosts': Boolean(dnsRow.use_hosts),
     };
+    if (dnsMode === 'fake-ip') {
+      dns['fake-ip-range'] = '198.18.0.0/15';
+      dns['fake-ip-filter'] = JSON.parse(dnsRow.fake_ip_filter || '[]');
+    }
+    config['dns'] = dns;
   }
 
   if (proxies.length > 0) config['proxies'] = proxies;
   if (Object.keys(proxyProviders).length > 0) config['proxy-providers'] = proxyProviders;
   if (proxyGroups.length > 0) config['proxy-groups'] = proxyGroups;
+  if (Object.keys(ruleProviders).length > 0) config['rule-providers'] = ruleProviders;
   if (rules.length > 0) config['rules'] = rules;
 
   return yaml.dump(config, { lineWidth: -1, quotingType: '"' });

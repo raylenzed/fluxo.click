@@ -1,8 +1,9 @@
 import type { FastifyPluginAsync } from 'fastify';
-import path from 'path';
 import { execSync } from 'child_process';
 import axios from 'axios';
 import { getDb } from '../../database/db';
+import { writeConfigAndReload } from '../config/config.generator';
+import { getSetting } from '../settings/settings.service';
 import {
   getMihomoStatus,
   getMihomoVersion,
@@ -12,7 +13,18 @@ import {
   reloadConfig,
 } from './mihomo.service';
 
+function getConfigPath(): string {
+  return process.env.CONFIG_PATH || '/etc/mihomo/config.yaml';
+}
+
 function getMihomoConfig(): { apiUrl: string; secret: string } {
+  // Env vars take precedence (Docker / systemd overrides)
+  if (process.env.MIHOMO_API_URL) {
+    return {
+      apiUrl: process.env.MIHOMO_API_URL,
+      secret: process.env.MIHOMO_SECRET || '',
+    };
+  }
   const db = getDb();
   const apiUrlRow = db.prepare("SELECT value FROM settings WHERE key = 'mihomo.external_controller'").get() as
     | { value: string }
@@ -83,7 +95,7 @@ export const mihomoRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post('/mihomo/reload', async (req, reply) => {
     try {
       const body = (req.body as { configPath?: string }) ?? {};
-      const configPath = body.configPath || process.env.CONFIG_PATH || path.join(process.cwd(), 'data', 'config.yaml');
+      const configPath = body.configPath || getConfigPath();
       await reloadConfig(configPath);
       reply.code(200).send({ ok: true });
     } catch (err) {
@@ -191,17 +203,47 @@ export const mihomoRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  // PUT /api/mihomo/tun — toggle TUN mode
+  // PUT /api/mihomo/tun — toggle TUN mode and apply config
   fastify.put('/mihomo/tun', async (req, reply) => {
     try {
       const body = req.body as { enable: boolean };
       const db = getDb();
       const now = new Date().toISOString();
       db.prepare("INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES ('tun.enable', ?, ?)").run(JSON.stringify(body.enable), now);
+      // Apply config immediately so the running Mihomo reflects the change
+      const { apiUrl, secret } = getMihomoConfig();
+      await writeConfigAndReload(getConfigPath(), apiUrl, secret || undefined).catch(() => { /* ignore if mihomo unreachable */ });
       return { ok: true };
     } catch (err) {
       fastify.log.error(err);
       reply.code(500).send({ error: 'Internal server error' });
+    }
+  });
+
+  // POST /api/mihomo/providers/:name/update — trigger provider update in Mihomo
+  fastify.post('/mihomo/providers/:name/update', async (req, reply) => {
+    try {
+      const { name } = req.params as { name: string };
+      const { apiUrl, secret } = getMihomoConfig();
+      await axios.put(
+        `${apiUrl}/providers/proxies/${encodeURIComponent(name)}`,
+        {},
+        { headers: getHeaders(secret), timeout: 10000 }
+      );
+      return { ok: true };
+    } catch {
+      reply.code(503).send({ error: 'Mihomo not reachable or provider not found' });
+    }
+  });
+
+  // POST /api/mihomo/geo/update — update GEO databases
+  fastify.post('/mihomo/geo/update', async (_req, reply) => {
+    try {
+      const { apiUrl, secret } = getMihomoConfig();
+      await axios.post(`${apiUrl}/configs/geo`, {}, { headers: getHeaders(secret), timeout: 30000 });
+      return { ok: true };
+    } catch {
+      reply.code(503).send({ error: 'Mihomo not reachable' });
     }
   });
 };

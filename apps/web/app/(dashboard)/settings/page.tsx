@@ -100,7 +100,16 @@ export default function SettingsPage() {
     if (settings["tun.enable"] !== undefined) setTunEnable(Boolean(settings["tun.enable"]));
     if (settings["tun.stack"] !== undefined) setTunStack(String(settings["tun.stack"]));
     if (settings["tun.auto_route"] !== undefined) setTunAutoRoute(Boolean(settings["tun.auto_route"]));
-    if (settings["tun.dns_hijack"] !== undefined) setTunDnsHijack(String(settings["tun.dns_hijack"]));
+    if (settings["tun.dns_hijack"] !== undefined) {
+      const raw = settings["tun.dns_hijack"];
+      // Stored as JSON array string like '["any:53"]' — display as comma-separated
+      try {
+        const arr = JSON.parse(String(raw));
+        setTunDnsHijack(Array.isArray(arr) ? arr.join(", ") : String(raw));
+      } catch {
+        setTunDnsHijack(String(raw));
+      }
+    }
     if (settings["mihomo.external_controller"] !== undefined) setExternalController(String(settings["mihomo.external_controller"]));
     if (settings["mihomo.secret"] !== undefined) setSecret(String(settings["mihomo.secret"]));
   }, [settings]);
@@ -114,7 +123,8 @@ export default function SettingsPage() {
       "tun.enable": tunEnable,
       "tun.stack": tunStack,
       "tun.auto_route": tunAutoRoute,
-      "tun.dns_hijack": tunDnsHijack,
+      // Save as JSON array string so config generator can JSON.parse it
+      "tun.dns_hijack": JSON.stringify(tunDnsHijack.split(",").map((s: string) => s.trim()).filter(Boolean)),
       "mihomo.external_controller": externalController,
       "mihomo.secret": secret,
     });

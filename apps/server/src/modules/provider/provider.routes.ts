@@ -27,7 +27,7 @@ export const providerRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.put('/providers/:id', async (req, reply) => {
     const { id } = req.params as { id: string };
-    const body = req.body as Partial<{ name: string; url: string; interval: number; filter: string }>;
+    const body = req.body as Partial<{ name: string; url: string; interval: number; filter: string; healthCheckUrl: string }>;
     const now = new Date().toISOString();
     const sets: string[] = ['updated_at = ?'];
     const vals: unknown[] = [now];
@@ -35,6 +35,7 @@ export const providerRoutes: FastifyPluginAsync = async (fastify) => {
     if (body.url !== undefined) { sets.push('url = ?'); vals.push(body.url); }
     if (body.interval !== undefined) { sets.push('interval = ?'); vals.push(body.interval); }
     if (body.filter !== undefined) { sets.push('filter = ?'); vals.push(body.filter); }
+    if (body.healthCheckUrl !== undefined) { sets.push('health_check_url = ?'); vals.push(body.healthCheckUrl || null); }
     vals.push(id);
     getDb().prepare(`UPDATE providers SET ${sets.join(', ')} WHERE id = ?`).run(...(vals as [unknown, ...unknown[]]));
     return { ok: true };
