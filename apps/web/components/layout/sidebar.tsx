@@ -9,77 +9,61 @@ import {
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useMihomoStatus } from "@/lib/hooks";
-
-const navItems = [
-  {
-    group: "OVERVIEW",
-    items: [
-      { href: "/", label: "Dashboard", icon: LayoutDashboard },
-      { href: "/activity", label: "Activity", icon: Activity },
-      { href: "/overview", label: "Overview", icon: Eye },
-    ],
-  },
-  {
-    group: "CLIENT",
-    items: [
-      { href: "/processes", label: "Processes", icon: Cpu },
-      { href: "/devices", label: "Devices", icon: Monitor },
-    ],
-  },
-  {
-    group: "PROXY",
-    items: [
-      { href: "/policies", label: "Policies", icon: GitBranch },
-      { href: "/rules", label: "Rules", icon: List },
-    ],
-  },
-  {
-    group: "TOOLS",
-    items: [
-      { href: "/capture", label: "Logs", icon: ScrollText },
-      { href: "/mitm", label: "Proxy Info", icon: Info },
-      { href: "/rewrite", label: "Rule Sets", icon: Database },
-    ],
-  },
-  {
-    group: "SYSTEM",
-    items: [
-      { href: "/modules", label: "Providers", icon: Package },
-      { href: "/profiles", label: "Profiles", icon: FileText },
-      { href: "/scripts", label: "Tasks", icon: CalendarClock },
-      { href: "/dns", label: "DNS", icon: Globe },
-    ],
-  },
-];
-
-const bottomItems = [
-  { href: "/settings", label: "Settings", icon: Settings },
-  { href: "/system", label: "System", icon: Server },
-];
-
-function MihomoStatusDot({ running = false }: { running?: boolean }) {
-  return (
-    <div className="flex items-center gap-1.5">
-      <span
-        className={cn(
-          "h-2 w-2 rounded-full",
-          running
-            ? "bg-emerald-500 animate-pulse-dot"
-            : "bg-[var(--muted-foreground)]"
-        )}
-      />
-      <span className={cn("text-xs font-medium", running ? "text-emerald-600 dark:text-emerald-400" : "text-[var(--muted)]")}>
-        {running ? "Running" : "Stopped"}
-      </span>
-    </div>
-  );
-}
+import { useLocale } from "@/lib/i18n/context";
 
 export function Sidebar() {
   const pathname = usePathname();
   const { data: statusData } = useMihomoStatus();
   const isRunning = statusData?.running ?? false;
   const version = statusData?.version ?? null;
+  const { locale, setLocale, t } = useLocale();
+
+  const navItems = [
+    {
+      group: t.nav.groupOverview,
+      items: [
+        { href: "/", label: t.nav.dashboard, icon: LayoutDashboard },
+        { href: "/activity", label: t.nav.activity, icon: Activity },
+        { href: "/overview", label: t.nav.overview, icon: Eye },
+      ],
+    },
+    {
+      group: t.nav.groupClient,
+      items: [
+        { href: "/processes", label: t.nav.processes, icon: Cpu },
+        { href: "/devices", label: t.nav.devices, icon: Monitor },
+      ],
+    },
+    {
+      group: t.nav.groupProxy,
+      items: [
+        { href: "/policies", label: t.nav.policies, icon: GitBranch },
+        { href: "/rules", label: t.nav.rules, icon: List },
+      ],
+    },
+    {
+      group: t.nav.groupTools,
+      items: [
+        { href: "/capture", label: t.nav.logs, icon: ScrollText },
+        { href: "/mitm", label: t.nav.proxyInfo, icon: Info },
+        { href: "/rewrite", label: t.nav.ruleSets, icon: Database },
+      ],
+    },
+    {
+      group: t.nav.groupSystem,
+      items: [
+        { href: "/modules", label: t.nav.providers, icon: Package },
+        { href: "/profiles", label: t.nav.profiles, icon: FileText },
+        { href: "/scripts", label: t.nav.tasks, icon: CalendarClock },
+        { href: "/dns", label: t.nav.dns, icon: Globe },
+      ],
+    },
+  ];
+
+  const bottomItems = [
+    { href: "/settings", label: t.nav.settings, icon: Settings },
+    { href: "/system", label: t.nav.system, icon: Server },
+  ];
 
   return (
     <aside className="flex h-screen w-[220px] flex-col bg-[var(--sidebar)] border-r border-[var(--sidebar-border)] overflow-hidden shrink-0">
@@ -95,9 +79,19 @@ export function Sidebar() {
 
       {/* Mihomo status */}
       <div className="mx-3 mb-3 flex items-center justify-between rounded-[12px] bg-[var(--surface-2)] px-3 py-2.5 border border-[var(--border)]">
-        <MihomoStatusDot running={isRunning} />
+        <div className="flex items-center gap-1.5">
+          <span
+            className={cn(
+              "h-2 w-2 rounded-full",
+              isRunning ? "bg-emerald-500 animate-pulse-dot" : "bg-[var(--muted-foreground)]"
+            )}
+          />
+          <span className={cn("text-xs font-medium", isRunning ? "text-emerald-600 dark:text-emerald-400" : "text-[var(--muted)]")}>
+            {isRunning ? t.status.running : t.status.stopped}
+          </span>
+        </div>
         <span className="text-xs text-[var(--muted)]">
-          {version ? `v${version}` : 'Unknown'}
+          {version ? `v${version}` : t.status.unknown}
         </span>
       </div>
 
@@ -144,7 +138,7 @@ export function Sidebar() {
         ))}
       </nav>
 
-      {/* Bottom items */}
+      {/* Bottom items + language switcher */}
       <div className="px-3 pb-4 border-t border-[var(--sidebar-border)] pt-3">
         {bottomItems.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href);
@@ -164,6 +158,32 @@ export function Sidebar() {
             </Link>
           );
         })}
+
+        {/* Language switcher */}
+        <div className="mt-2 flex items-center gap-1 rounded-[10px] bg-[var(--surface-2)] p-1">
+          <button
+            onClick={() => setLocale('en')}
+            className={cn(
+              "flex-1 rounded-[8px] py-1 text-xs font-medium transition-all",
+              locale === 'en'
+                ? "bg-[var(--brand-500)] text-white shadow-sm"
+                : "text-[var(--muted)] hover:text-[var(--foreground)]"
+            )}
+          >
+            EN
+          </button>
+          <button
+            onClick={() => setLocale('zh')}
+            className={cn(
+              "flex-1 rounded-[8px] py-1 text-xs font-medium transition-all",
+              locale === 'zh'
+                ? "bg-[var(--brand-500)] text-white shadow-sm"
+                : "text-[var(--muted)] hover:text-[var(--foreground)]"
+            )}
+          >
+            中文
+          </button>
+        </div>
       </div>
     </aside>
   );

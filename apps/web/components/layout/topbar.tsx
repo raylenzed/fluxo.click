@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { useLocale } from "@/lib/i18n/context";
 
 interface TopbarProps {
   title: string;
@@ -43,6 +44,7 @@ function ModeSegment({
 
 export function Topbar({ title, description, children }: TopbarProps) {
   const { theme, setTheme } = useTheme();
+  const { t } = useLocale();
 
   return (
     <header className="sticky top-0 z-10 flex h-14 items-center justify-between gap-4 bg-[var(--background)]/80 backdrop-blur-md px-6 border-b border-[var(--border)]">
@@ -61,11 +63,11 @@ export function Topbar({ title, description, children }: TopbarProps) {
         {/* System proxy + TUN toggles */}
         <div className="hidden md:flex items-center gap-3 pl-2 border-l border-[var(--border)]">
           <label className="flex items-center gap-1.5 cursor-pointer">
-            <span className="text-xs text-[var(--muted)] font-medium">System Proxy</span>
+            <span className="text-xs text-[var(--muted)] font-medium">{t.topbar.systemProxy}</span>
             <Switch className="scale-90" />
           </label>
           <label className="flex items-center gap-1.5 cursor-pointer">
-            <span className="text-xs text-[var(--muted)] font-medium">Enhanced</span>
+            <span className="text-xs text-[var(--muted)] font-medium">{t.topbar.enhanced}</span>
             <Switch className="scale-90" />
           </label>
         </div>
@@ -79,7 +81,7 @@ export function Topbar({ title, description, children }: TopbarProps) {
         >
           <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
           <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-          <span className="sr-only">Toggle theme</span>
+          <span className="sr-only">{t.topbar.toggleTheme}</span>
         </Button>
 
         {/* Notifications */}

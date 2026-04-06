@@ -21,6 +21,7 @@ import {
 } from "@/lib/hooks";
 import type { ProxyRow, GroupRow } from "@/lib/api";
 import { toast } from "sonner";
+import { useLocale } from "@/lib/i18n/context";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const groupTypeIcons = {
@@ -28,13 +29,6 @@ const groupTypeIcons = {
   "url-test": Zap,
   fallback: RotateCcw,
   "load-balance": Network,
-} as const;
-
-const groupTypeLabels = {
-  select: "Select",
-  "url-test": "Auto",
-  fallback: "Fallback",
-  "load-balance": "Load Bal.",
 } as const;
 
 // ─── NodeCard ─────────────────────────────────────────────────────────────────
@@ -90,6 +84,14 @@ function GroupCard({
   onDelete: () => void;
 }) {
   const [showNodes, setShowNodes] = useState(false);
+  const { t } = useLocale();
+
+  const groupTypeLabels = {
+    select: "Select",
+    "url-test": "Auto",
+    fallback: "Fallback",
+    "load-balance": "Load Bal.",
+  } as const;
 
   const groupType = group.type as keyof typeof groupTypeIcons;
   const TypeIcon = groupTypeIcons[groupType] ?? MoreHorizontal;
@@ -129,11 +131,11 @@ function GroupCard({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-44">
-            <DropdownMenuItem onClick={onEdit}>Edit Group</DropdownMenuItem>
-            <DropdownMenuItem>Duplicate</DropdownMenuItem>
-            <DropdownMenuItem>Latency Test</DropdownMenuItem>
+            <DropdownMenuItem onClick={onEdit}>{t.policies.editGroup}</DropdownMenuItem>
+            <DropdownMenuItem>{t.policies.duplicate}</DropdownMenuItem>
+            <DropdownMenuItem>{t.policies.latencyTest}</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-red-600" onClick={onDelete}>Delete Group</DropdownMenuItem>
+            <DropdownMenuItem className="text-red-600" onClick={onDelete}>{t.policies.deleteGroup}</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
@@ -211,11 +213,12 @@ function GroupSkeleton() {
 
 // ─── Error state ──────────────────────────────────────────────────────────────
 function ApiError() {
+  const { t } = useLocale();
   return (
     <div className="flex flex-col items-center justify-center py-16 text-[var(--muted)]">
       <ServerCrash className="h-10 w-10 mb-3 opacity-40" />
-      <p className="text-sm font-medium">Cannot reach API server</p>
-      <p className="text-xs mt-1">Make sure the backend is running on port 8090</p>
+      <p className="text-sm font-medium">{t.policies.cannotReachApi}</p>
+      <p className="text-xs mt-1">{t.policies.makeBackendRunning}</p>
     </div>
   );
 }
@@ -226,6 +229,7 @@ export default function PoliciesPage() {
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [showNewGroup, setShowNewGroup] = useState(false);
   const [showAddNode, setShowAddNode] = useState(false);
+  const { t } = useLocale();
 
   const proxiesQuery = useProxies();
   const groupsQuery = useGroups();
@@ -242,14 +246,14 @@ export default function PoliciesPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <Topbar title="Policies" description={`${proxyNodes.length} nodes · ${proxyGroups.length} groups`}>
+      <Topbar title={t.policies.title} description={`${proxyNodes.length} nodes · ${proxyGroups.length} groups`}>
         <ModeSegment
           value={outboundMode}
           onChange={setOutboundMode}
           options={[
-            { label: "Direct", value: "direct" },
-            { label: "Global", value: "global" },
-            { label: "Rules", value: "rule" },
+            { label: t.topbar.direct, value: "direct" },
+            { label: t.topbar.global, value: "global" },
+            { label: t.topbar.rules, value: "rule" },
           ]}
         />
         <Button
@@ -262,11 +266,11 @@ export default function PoliciesPage() {
           {applyConfig.isPending
             ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
             : <Check className="h-3.5 w-3.5" />}
-          Apply Config
+          {t.topbar.applyConfig}
         </Button>
         <Button size="sm" onClick={() => setShowNewGroup(true)} className="gap-1.5">
           <Plus className="h-3.5 w-3.5" />
-          Add Group
+          {t.policies.addGroup}
         </Button>
       </Topbar>
 
@@ -275,7 +279,7 @@ export default function PoliciesPage() {
         <section>
           <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--brand-500)] mb-3 flex items-center gap-2">
             <span className="h-px flex-1 bg-[var(--border)]" />
-            Proxy Nodes ({proxyNodes.length})
+            {t.policies.proxyNodes} ({proxyNodes.length})
             <span className="h-px flex-1 bg-[var(--border)]" />
           </h2>
 
@@ -312,13 +316,13 @@ export default function PoliciesPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-36">
-                          <DropdownMenuItem>Edit Node</DropdownMenuItem>
+                          <DropdownMenuItem>{t.policies.editNode}</DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
                             className="text-red-600"
                             onClick={() => deleteProxy.mutate(node.id)}
                           >
-                            Delete
+                            {t.policies.delete}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -331,7 +335,7 @@ export default function PoliciesPage() {
                 onClick={() => setShowAddNode(true)}
               >
                 <Plus className="h-5 w-5" />
-                <span className="text-xs mt-1">Add Node</span>
+                <span className="text-xs mt-1">{t.policies.addNode}</span>
               </button>
             </div>
           )}
@@ -341,7 +345,7 @@ export default function PoliciesPage() {
         <section>
           <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-3 flex items-center gap-2">
             <span className="h-px flex-1 bg-[var(--border)]" />
-            Policy Groups ({proxyGroups.length})
+            {t.policies.policyGroups} ({proxyGroups.length})
             <span className="h-px flex-1 bg-[var(--border)]" />
           </h2>
 
@@ -365,7 +369,7 @@ export default function PoliciesPage() {
                 onClick={() => setShowNewGroup(true)}
               >
                 <Plus className="h-5 w-5" />
-                <span className="text-xs mt-1">Add Group</span>
+                <span className="text-xs mt-1">{t.policies.addGroup}</span>
               </button>
             </div>
           )}
