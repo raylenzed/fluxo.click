@@ -269,7 +269,6 @@ ipv6: false
 
 external-controller: 0.0.0.0:9090
 secret: ""
-external-ui: /opt/fluxo/ui
 
 dns:
   enable: true
