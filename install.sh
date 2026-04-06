@@ -377,6 +377,13 @@ install_fluxo() {
 
   log_info "Fluxo built successfully"
 
+  # Copy static assets into Next.js standalone output (required for standalone mode)
+  local web_standalone="${INSTALL_DIR}/apps/web/.next/standalone/apps/web"
+  log_detail "Copying static assets to standalone output..."
+  cp -r "${INSTALL_DIR}/apps/web/public" "${web_standalone}/public" 2>/dev/null || true
+  mkdir -p "${web_standalone}/.next"
+  cp -r "${INSTALL_DIR}/apps/web/.next/static" "${web_standalone}/.next/static" 2>/dev/null || true
+
   # Install fluxo-cli (system management CLI tool)
   log_detail "Installing fluxo-cli..."
   cp "$INSTALL_DIR/tools/fluxo-cli.sh" /usr/local/bin/fluxo-cli
@@ -447,10 +454,39 @@ WantedBy=multi-user.target
 EOF
   log_info "Created /etc/systemd/system/fluxo.service"
 
+  # ── fluxo-web.service ─────────────────────────────────────────────────
+  local web_standalone="${INSTALL_DIR}/apps/web/.next/standalone/apps/web"
+  cat > /etc/systemd/system/fluxo-web.service <<EOF
+[Unit]
+Description=Fluxo Web UI (Next.js)
+Documentation=${REPO_URL}
+After=network-online.target fluxo.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=${web_standalone}
+Environment=NODE_ENV=production
+Environment=PORT=${WEB_PORT}
+Environment=HOSTNAME=0.0.0.0
+ExecStart=${node_bin} ${web_standalone}/server.js
+Restart=on-failure
+RestartSec=5s
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=fluxo-web
+
+[Install]
+WantedBy=multi-user.target
+EOF
+  log_info "Created /etc/systemd/system/fluxo-web.service"
+
   # Reload and enable
   systemctl daemon-reload
   systemctl enable mihomo.service
   systemctl enable fluxo.service
+  systemctl enable fluxo-web.service
   log_info "Services enabled for auto-start"
 
   # Start services
@@ -464,14 +500,24 @@ EOF
     log_warn "Mihomo failed to start — check: journalctl -u mihomo -n 50"
   fi
 
-  log_detail "Starting fluxo..."
+  log_detail "Starting fluxo API..."
   systemctl start fluxo.service
   sleep 2
 
   if systemctl is-active --quiet fluxo.service; then
-    log_info "Fluxo is running"
+    log_info "Fluxo API is running"
   else
-    log_warn "Fluxo failed to start — check: journalctl -u fluxo -n 50"
+    log_warn "Fluxo API failed to start — check: journalctl -u fluxo -n 50"
+  fi
+
+  log_detail "Starting fluxo web UI..."
+  systemctl start fluxo-web.service
+  sleep 2
+
+  if systemctl is-active --quiet fluxo-web.service; then
+    log_info "Fluxo web UI is running"
+  else
+    log_warn "Fluxo web UI failed to start — check: journalctl -u fluxo-web -n 50"
   fi
 }
 
@@ -563,7 +609,7 @@ uninstall() {
   fi
 
   # Stop and disable services
-  for svc in fluxo mihomo; do
+  for svc in fluxo-web fluxo mihomo; do
     if systemctl is-active --quiet "$svc" 2>/dev/null; then
       log_detail "Stopping $svc..."
       systemctl stop "$svc" || true
