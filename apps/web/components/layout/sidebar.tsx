@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import {
   Activity, LayoutDashboard, Eye, Cpu, Monitor, GitBranch,
   List, Info, Database, Package, FileText, CalendarClock,
-  Settings, Server, ChevronRight, Zap, Globe, ScrollText
+  Settings, Server, ChevronRight, Zap, Globe, ScrollText, FileCode2
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useMihomoStatus } from "@/lib/hooks";
@@ -56,6 +56,7 @@ export function Sidebar() {
         { href: "/profiles", label: t.nav.profiles, icon: FileText },
         { href: "/scripts", label: t.nav.tasks, icon: CalendarClock },
         { href: "/dns", label: t.nav.dns, icon: Globe },
+        { href: "/config-editor", label: t.nav.configEditor, icon: FileCode2 },
       ],
     },
   ];

@@ -25,6 +25,7 @@ async function main() {
   const { dnsRoutes } = await import('./modules/dns/dns.routes');
   const { providerRoutes } = await import('./modules/provider/provider.routes');
   const { ruleProviderRoutes } = await import('./modules/rule-provider/rule-provider.routes');
+  const { configRoutes } = await import('./modules/config/config.routes');
 
   await app.register(proxyRoutes, { prefix: '/api' });
   await app.register(groupRoutes, { prefix: '/api' });
@@ -35,6 +36,7 @@ async function main() {
   await app.register(dnsRoutes, { prefix: '/api' });
   await app.register(providerRoutes, { prefix: '/api' });
   await app.register(ruleProviderRoutes, { prefix: '/api' });
+  await app.register(configRoutes, { prefix: '/api' });
 
   // WebSocket endpoint for real-time data
   app.get('/ws', { websocket: true }, (socket) => {
