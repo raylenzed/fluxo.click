@@ -156,7 +156,7 @@ check_dependencies() {
   log_step "Checking system dependencies"
   local missing=()
 
-  for cmd in curl tar systemctl; do
+  for cmd in curl tar systemctl python3 make g++; do
     if command -v "$cmd" &>/dev/null; then
       log_info "Found: $cmd"
     else
@@ -169,9 +169,30 @@ check_dependencies() {
     log_detail "Attempting to install missing packages..."
     if command -v apt-get &>/dev/null; then
       apt-get update -qq
-      apt-get install -y -qq "${missing[@]}"
+      # Map command names to package names
+      local pkgs=()
+      for cmd in "${missing[@]}"; do
+        case "$cmd" in
+          g++)    pkgs+=("build-essential") ;;
+          make)   pkgs+=("build-essential") ;;
+          python3) pkgs+=("python3") ;;
+          *)      pkgs+=("$cmd") ;;
+        esac
+      done
+      # Deduplicate
+      IFS=$'\n' pkgs=($(printf '%s\n' "${pkgs[@]}" | sort -u)); unset IFS
+      apt-get install -y -qq "${pkgs[@]}"
     elif command -v yum &>/dev/null; then
-      yum install -y -q "${missing[@]}"
+      local pkgs=()
+      for cmd in "${missing[@]}"; do
+        case "$cmd" in
+          g++|make) pkgs+=("gcc-c++" "make") ;;
+          python3)  pkgs+=("python3") ;;
+          *)        pkgs+=("$cmd") ;;
+        esac
+      done
+      IFS=$'\n' pkgs=($(printf '%s\n' "${pkgs[@]}" | sort -u)); unset IFS
+      yum install -y -q "${pkgs[@]}"
     else
       die "Cannot auto-install dependencies. Please install: ${missing[*]}"
     fi
