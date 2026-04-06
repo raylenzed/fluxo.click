@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fluxo — Let it flow.</title>
+  <meta name="description" content="Modern web dashboard for Mihomo (Clash.Meta) proxy on Linux VPS. One-click install, real-time traffic monitoring, full config management." />
+  <meta property="og:title" content="Fluxo — Let it flow." />
+  <meta property="og:description" content="Modern web dashboard for Mihomo (Clash.Meta) proxy on Linux VPS." />
+  <meta property="og:url" content="https://fluxo.click" />
+  <link rel="stylesheet" href="/assets/style.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>" />
+</head>
+<body>
+
+<!-- ── Nav ────────────────────────────────────────────────── -->
+<nav>
+  <div class="container">
+    <div class="nav-inner">
+      <a class="nav-logo" href="/">
+        <span class="icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+          </svg>
+        </span>
+        Fluxo
+      </a>
+      <div class="nav-links">
+        <a href="#features" class="hide-mobile">Features</a>
+        <a href="#install" class="hide-mobile">Install</a>
+        <a href="https://github.com/RaylenZed/fluxo" target="_blank" rel="noopener" class="btn-github">
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
+          </svg>
+          GitHub
+        </a>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- ── Hero ───────────────────────────────────────────────── -->
+<section class="hero" id="install">
+  <div class="container">
+    <div class="badge">
+      <span class="dot"></span>
+      Open Source · MIT License
+    </div>
+    <h1>The proxy dashboard<br>for your <span class="brand">VPS</span></h1>
+    <p class="tagline">
+      Manage Mihomo (Clash.Meta) from anywhere —
+      real-time traffic, full config, one-click install.
+    </p>
+
+    <!-- Direct Install -->
+    <div class="install-section">
+      <p class="install-label">One-line install (Debian / Ubuntu)</p>
+      <div class="install-box">
+        <code><span class="prompt">$ </span>curl -fsSL fluxo.click/install.sh | sudo bash</code>
+        <button class="copy-btn" onclick="copyInstall(this, 'curl -fsSL fluxo.click/install.sh | sudo bash')">Copy</button>
+      </div>
+    </div>
+
+    <p class="install-alt">
+      Or deploy with
+      <a href="#docker">Docker Compose</a>
+      &nbsp;·&nbsp;
+      <a href="https://github.com/RaylenZed/fluxo" target="_blank" rel="noopener">View on GitHub ↗</a>
+    </p>
+  </div>
+</section>
+
+<!-- ── Features ───────────────────────────────────────────── -->
+<section class="features" id="features">
+  <div class="container">
+    <p class="section-title">Everything you need</p>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <h3>Real-time Monitoring</h3>
+        <p>Live traffic charts, connection list, and log viewer via WebSocket — no page refresh needed.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔧</div>
+        <h3>Full Config Management</h3>
+        <p>Add proxies, edit proxy groups, manage rules — all from the UI. One click to generate and hot-reload YAML.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🌐</div>
+        <h3>DNS Control</h3>
+        <p>Fake-IP / redir-host modes, custom upstream DNS servers, all configurable from the dashboard.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📦</div>
+        <h3>Provider Subscriptions</h3>
+        <p>Import proxy and rule provider URLs, refresh on demand, manage multiple subscriptions.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔒</div>
+        <h3>TUN Mode Ready</h3>
+        <p>Toggle TUN mode, auto-route, and DNS hijack from Settings — Mihomo runs on host for full kernel access.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🐳</div>
+        <h3>Docker or Direct</h3>
+        <p>Deploy via Docker Compose or install directly on host with a single bash command. Your choice.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Deploy ──────────────────────────────────────────────── -->
+<section class="deploy" id="docker">
+  <div class="container">
+    <p class="section-title">Two ways to deploy</p>
+    <div class="deploy-grid">
+      <div class="deploy-card">
+        <h3>⚡ Direct Install</h3>
+        <pre><span class="comment"># Installs Mihomo + Fluxo + systemd</span>
+curl -fsSL fluxo.click/install.sh \
+  | sudo bash
+
+<span class="comment"># Uninstall</span>
+sudo bash install.sh --uninstall</pre>
+      </div>
+      <div class="deploy-card">
+        <h3>🐳 Docker Compose</h3>
+        <pre><span class="comment"># Mihomo must run on host</span>
+git clone https://github.com/\
+  RaylenZed/fluxo.git
+cd fluxo
+
+docker compose up -d
+
+<span class="comment"># Web UI: :8080  API: :8090</span></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Footer ─────────────────────────────────────────────── -->
+<footer>
+  <div class="container">
+    <div class="footer-links">
+      <a href="https://github.com/RaylenZed/fluxo" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://github.com/RaylenZed/fluxo/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a>
+      <a href="https://github.com/RaylenZed/fluxo/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener">Contributing</a>
+      <a href="https://github.com/MetaCubeX/mihomo" target="_blank" rel="noopener">Mihomo Core ↗</a>
+    </div>
+    <p>Built with ⚡ by <a href="https://github.com/RaylenZed" target="_blank" rel="noopener">RaylenZed</a> · MIT Licensed</p>
+  </div>
+</footer>
+
+<script>
+function copyInstall(btn, text) {
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = orig;
+      btn.classList.remove('copied');
+    }, 2000);
+  });
+}
+</script>
+
+</body>
+</html>

@@ -41,7 +41,7 @@ pnpm dev  # Web: http://localhost:38080 | API: http://localhost:8090
 ### Production — Direct Install (Debian/Ubuntu)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/raylenzed/fluxo/main/install.sh | sudo bash
+curl -fsSL fluxo.click/install.sh | sudo bash
 ```
 
 ### Production — Docker

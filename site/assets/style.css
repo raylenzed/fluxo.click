@@ -1,0 +1,190 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --brand: #7c5cfc;
+  --brand-dark: #6344e0;
+  --brand-light: #a78bfa;
+  --bg: #0a0a0f;
+  --surface: #13131a;
+  --surface2: #1c1c26;
+  --border: rgba(255,255,255,0.08);
+  --text: #f0f0f5;
+  --muted: #8888a0;
+  --green: #34d399;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.6;
+}
+
+/* ── Layout ── */
+.container { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+
+/* ── Nav ── */
+nav {
+  position: sticky; top: 0; z-index: 10;
+  border-bottom: 1px solid var(--border);
+  background: rgba(10,10,15,0.85);
+  backdrop-filter: blur(12px);
+}
+.nav-inner {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 0;
+}
+.nav-logo {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 18px; font-weight: 700; color: var(--brand); text-decoration: none;
+}
+.nav-logo .icon {
+  width: 32px; height: 32px; border-radius: 9px;
+  background: var(--brand); display: flex; align-items: center; justify-content: center;
+}
+.nav-logo .icon svg { width: 16px; height: 16px; color: #fff; }
+.nav-links { display: flex; align-items: center; gap: 20px; }
+.nav-links a {
+  color: var(--muted); text-decoration: none; font-size: 14px;
+  transition: color 0.15s;
+}
+.nav-links a:hover { color: var(--text); }
+.btn-github {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text) !important; padding: 7px 14px; border-radius: 8px;
+  font-size: 13px; font-weight: 500; transition: border-color 0.15s;
+}
+.btn-github:hover { border-color: var(--brand) !important; }
+
+/* ── Hero ── */
+.hero {
+  text-align: center; padding: 100px 0 64px;
+}
+.badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(124,92,252,0.12); border: 1px solid rgba(124,92,252,0.3);
+  color: var(--brand-light); padding: 4px 12px; border-radius: 100px;
+  font-size: 12px; font-weight: 600; letter-spacing: 0.04em;
+  text-transform: uppercase; margin-bottom: 24px;
+}
+.badge .dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--brand-light); animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+h1 {
+  font-size: clamp(48px, 8vw, 80px);
+  font-weight: 800; letter-spacing: -0.03em; line-height: 1.1;
+  margin-bottom: 20px;
+}
+h1 .brand { color: var(--brand); }
+.tagline {
+  font-size: 20px; color: var(--muted); margin-bottom: 48px;
+  max-width: 480px; margin-left: auto; margin-right: auto;
+}
+
+/* ── Install Box ── */
+.install-section { margin-bottom: 20px; }
+.install-label {
+  font-size: 12px; color: var(--muted); text-transform: uppercase;
+  letter-spacing: 0.08em; font-weight: 600; margin-bottom: 10px;
+}
+.install-box {
+  display: flex; align-items: center;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 14px 18px;
+  gap: 12px; max-width: 580px; margin: 0 auto;
+  transition: border-color 0.2s;
+}
+.install-box:hover { border-color: rgba(124,92,252,0.4); }
+.install-box code {
+  flex: 1; font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+  font-size: 14px; color: var(--text); word-break: break-all; text-align: left;
+}
+.install-box code .prompt { color: var(--muted); user-select: none; }
+.copy-btn {
+  flex-shrink: 0; background: var(--brand); border: none; border-radius: 8px;
+  color: #fff; padding: 7px 14px; font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: background 0.15s, transform 0.1s;
+  white-space: nowrap;
+}
+.copy-btn:hover { background: var(--brand-dark); }
+.copy-btn:active { transform: scale(0.96); }
+.copy-btn.copied { background: #059669; }
+
+.install-alt {
+  font-size: 13px; color: var(--muted); margin-top: 12px;
+}
+.install-alt a { color: var(--brand-light); text-decoration: none; }
+.install-alt a:hover { text-decoration: underline; }
+
+/* ── Features ── */
+.features { padding: 80px 0; }
+.section-title {
+  text-align: center; font-size: 13px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600;
+  margin-bottom: 48px;
+}
+.feature-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+.feature-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; padding: 24px;
+  transition: border-color 0.2s, transform 0.2s;
+}
+.feature-card:hover {
+  border-color: rgba(124,92,252,0.35);
+  transform: translateY(-2px);
+}
+.feature-icon {
+  width: 38px; height: 38px; border-radius: 10px;
+  background: rgba(124,92,252,0.12); display: flex; align-items: center;
+  justify-content: center; margin-bottom: 14px;
+  font-size: 18px;
+}
+.feature-card h3 { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+.feature-card p { font-size: 13px; color: var(--muted); line-height: 1.55; }
+
+/* ── Deploy Options ── */
+.deploy { padding: 0 0 80px; }
+.deploy-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 600px) { .deploy-grid { grid-template-columns: 1fr; } }
+.deploy-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; padding: 24px;
+}
+.deploy-card h3 {
+  font-size: 14px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--brand-light); margin-bottom: 12px;
+}
+.deploy-card pre {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 8px; padding: 12px 14px;
+  font-family: "SF Mono", "Fira Code", monospace; font-size: 12px;
+  color: var(--text); overflow-x: auto; line-height: 1.7;
+}
+.deploy-card pre .comment { color: var(--muted); }
+
+/* ── Footer ── */
+footer {
+  border-top: 1px solid var(--border); padding: 32px 0;
+  text-align: center; color: var(--muted); font-size: 13px;
+}
+footer a { color: var(--brand-light); text-decoration: none; }
+footer a:hover { text-decoration: underline; }
+.footer-links { display: flex; justify-content: center; gap: 24px; margin-bottom: 16px; }
+
+/* ── Responsive ── */
+@media (max-width: 640px) {
+  .hero { padding: 64px 0 48px; }
+  .nav-links .hide-mobile { display: none; }
+}
