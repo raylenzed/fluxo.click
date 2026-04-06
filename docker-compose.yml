@@ -1,7 +1,7 @@
 version: "3.9"
 
 # ============================================================
-# Mihomo Party — Docker Compose
+# Vortex — Docker Compose
 # ============================================================
 # Usage:
 #   docker compose up -d
@@ -16,12 +16,12 @@ version: "3.9"
 # ============================================================
 
 services:
-  mihomo-party:
-    image: mihomo-party:latest
+  vortex:
+    image: vortex:latest
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: mihomo-party
+    container_name: vortex
     restart: unless-stopped
 
     ports:
@@ -30,11 +30,11 @@ services:
 
     volumes:
       - /etc/mihomo:/etc/mihomo:ro        # Mihomo config (read-only from container)
-      - mihomo_party_data:/data           # Persistent SQLite DB + uploads
+      - vortex_data:/data                 # Persistent SQLite DB + uploads
 
     environment:
       - NODE_ENV=production
-      - DB_PATH=/data/mihomo-party.db
+      - DB_PATH=/data/vortex.db
       - WEB_PORT=8080
       - SERVER_PORT=8090
       # Point to Mihomo running on the host (or another container)
@@ -59,5 +59,5 @@ services:
         max-file: "3"
 
 volumes:
-  mihomo_party_data:
+  vortex_data:
     driver: local

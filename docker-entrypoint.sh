@@ -1,13 +1,13 @@
 #!/bin/sh
 # ============================================================
-# Mihomo Party — Docker Entrypoint
+# Vortex — Docker Entrypoint
 # ============================================================
 set -e
 
 # Ensure data directory exists (in case of bind mount)
-mkdir -p "$(dirname "${DB_PATH:-/data/mihomo-party.db}")"
+mkdir -p "$(dirname "${DB_PATH:-/data/vortex.db}")"
 
-echo "[entrypoint] Starting Mihomo Party..."
+echo "[entrypoint] Starting Vortex..."
 echo "[entrypoint]   Web UI  → port ${WEB_PORT:-8080}"
 echo "[entrypoint]   API     → port ${SERVER_PORT:-8090}"
 echo "[entrypoint]   Mihomo  → ${MIHOMO_API_URL:-http://host-gateway:9090}"

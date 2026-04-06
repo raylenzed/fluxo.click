@@ -1,5 +1,5 @@
 # ============================================================
-# Mihomo Party — Dockerfile (multi-stage)
+# Vortex — Dockerfile (multi-stage)
 # ============================================================
 # Stage 1 (deps)    — install pnpm + all dependencies
 # Stage 2 (builder) — build Next.js and Fastify

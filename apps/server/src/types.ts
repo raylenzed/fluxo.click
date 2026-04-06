@@ -16,7 +16,7 @@ export type {
   WsMessage,
   WsMessageType,
   ApiResponse,
-} from '@mihomo-party/shared';
+} from '@vortex-net/shared';
 
 // Server-specific types
 export interface DbRow {
