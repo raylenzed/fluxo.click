@@ -1,7 +1,11 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import websocketPlugin from '@fastify/websocket';
+import fs from 'fs';
+import path from 'path';
 import { addClient, startMihomoRelay } from './modules/realtime/realtime.service';
+import { generateConfig } from './modules/config/config.generator';
+import { getDb } from './database/db';
 
 const app = Fastify({ logger: true });
 
@@ -43,6 +47,25 @@ async function main() {
   const PORT = Number(process.env.PORT ?? 8090);
   await app.listen({ port: PORT, host: '0.0.0.0' });
   console.log(`Server running on port ${PORT}`);
+
+  // Ensure DB is initialized (triggers seedDefaults)
+  getDb();
+
+  // Auto-generate initial config.yaml if it doesn't exist
+  const configPath = process.env.CONFIG_PATH || '/etc/mihomo/config.yaml';
+  const configDir = path.dirname(configPath);
+  try {
+    if (!fs.existsSync(configPath)) {
+      app.log.info(`No config found at ${configPath}, generating default config...`);
+      fs.mkdirSync(configDir, { recursive: true });
+      const yaml = await generateConfig();
+      fs.writeFileSync(configPath, yaml, 'utf-8');
+      app.log.info(`Default config written to ${configPath}`);
+    }
+  } catch (err) {
+    app.log.warn(`Could not write default config to ${configPath}: ${(err as Error).message}`);
+    app.log.warn('You can manually generate it via POST /api/config/apply');
+  }
 
   startMihomoRelay();
 }
