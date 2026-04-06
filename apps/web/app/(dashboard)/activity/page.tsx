@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Topbar } from "@/components/layout/topbar";
+import { useLocale } from "@/lib/i18n/context";
 import { formatBytes, cn } from "@/lib/utils";
 import { useRealtimeConnections } from "@/lib/hooks/use-connections";
 import type { Connection } from "@/lib/hooks/use-connections";
@@ -130,6 +131,7 @@ function mapConnection(conn: Connection): DisplayConnection {
 }
 
 export default function ActivityPage() {
+  const { t } = useLocale();
   const liveState = useRealtimeConnections();
   const [paused, setPaused] = useState(false);
   const [search, setSearch] = useState("");
@@ -176,7 +178,7 @@ export default function ActivityPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <Topbar title="Activity" description="Real-time connection log">
+      <Topbar title={t.activity.title} description={t.activity.subtitle}>
         <Button size="sm" variant="ghost" className="text-[var(--muted)] text-xs gap-1.5" onClick={handleCloseAll}>
           <X className="h-3.5 w-3.5" />
           Close All
@@ -193,7 +195,7 @@ export default function ActivityPage() {
           <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--muted)]" />
             <Input
-              placeholder="Search host..."
+              placeholder={t.activity.searchHost}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9"

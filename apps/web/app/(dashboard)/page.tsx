@@ -11,6 +11,7 @@ import {
 import { useRealtimeTraffic } from "@/lib/hooks/use-traffic";
 import { useRealtimeConnections } from "@/lib/hooks/use-connections";
 import { useMihomoStatus } from "@/lib/hooks";
+import { useLocale } from "@/lib/i18n/context";
 
 const policyColors: Record<string, string> = {
   DIRECT: "bg-[var(--surface-2)] text-[var(--muted)] border border-[var(--border)]",
@@ -43,14 +44,15 @@ function StatCard({
 }
 
 function TrafficChart({ points, hasData }: { points: { t: number; up: number; down: number }[]; hasData: boolean }) {
+  const { t } = useLocale();
   return (
     <Card>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-semibold">Real-time Traffic</CardTitle>
+          <CardTitle className="text-sm font-semibold">{t.dashboard.realTimeTraffic}</CardTitle>
           <div className="flex items-center gap-3 text-xs text-[var(--muted)]">
-            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-[var(--brand-500)]" />Download</span>
-            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-500" />Upload</span>
+            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-[var(--brand-500)]" />{t.dashboard.download}</span>
+            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-500" />{t.dashboard.upload}</span>
           </div>
         </div>
       </CardHeader>
@@ -81,7 +83,7 @@ function TrafficChart({ points, hasData }: { points: { t: number; up: number; do
           </ResponsiveContainer>
           {!hasData && (
             <div className="absolute inset-0 flex items-center justify-center bg-[var(--surface)]/60 rounded-b-[12px]">
-              <p className="text-sm text-[var(--muted)] animate-pulse">Waiting for data...</p>
+              <p className="text-sm text-[var(--muted)] animate-pulse">{t.dashboard.waitingForData}</p>
             </div>
           )}
         </div>
@@ -110,6 +112,7 @@ export default function DashboardPage() {
   const { points, current } = useRealtimeTraffic(60);
   const connState = useRealtimeConnections();
   const { data: statusData } = useMihomoStatus();
+  const { t } = useLocale();
 
   const isRunning = statusData?.running ?? false;
   const version = statusData?.version ?? null;
@@ -125,36 +128,36 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <Topbar title="Dashboard" description="Real-time network monitoring" />
+      <Topbar title={t.dashboard.title} description={t.dashboardExtra.subtitle} />
 
       <div className="flex-1 p-6 space-y-5 overflow-auto">
         {/* Stats row */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
-            label="Download"
+            label={t.dashboard.download}
             value={formatSpeed(current.down)}
-            sub={`Total: ${formatBytes(connState.downloadTotal)}`}
+            sub={`${t.dashboard.total} ${formatBytes(connState.downloadTotal)}`}
             icon={ArrowDown}
             iconColor="bg-[var(--brand-100)] text-[var(--brand-500)] dark:bg-[var(--brand-500)]/20"
           />
           <StatCard
-            label="Upload"
+            label={t.dashboard.upload}
             value={formatSpeed(current.up)}
-            sub={`Total: ${formatBytes(connState.uploadTotal)}`}
+            sub={`${t.dashboard.total} ${formatBytes(connState.uploadTotal)}`}
             icon={ArrowUp}
             iconColor="bg-emerald-50 text-emerald-500 dark:bg-emerald-500/20"
           />
           <StatCard
-            label="Connections"
+            label={t.dashboard.connections}
             value={String(connState.connections.length)}
-            sub="All active connections"
+            sub={t.dashboard.allActiveConnections}
             icon={Activity}
             iconColor="bg-sky-50 text-sky-500 dark:bg-sky-500/20"
           />
           <StatCard
-            label="Latency"
+            label={t.dashboard.latency}
             value="—"
-            sub="Proxy test pending"
+            sub={t.dashboard.proxyTestPending}
             icon={Zap}
             iconColor="bg-amber-50 text-amber-500 dark:bg-amber-500/20"
           />
@@ -169,12 +172,12 @@ export default function DashboardPage() {
           {/* Quick info */}
           <div className="space-y-4">
             <Card className="p-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-3">Network Mode</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-3">{t.dashboard.networkMode}</p>
               <div className="space-y-2.5">
                 {[
-                  { label: "System Proxy", value: "On", active: true },
-                  { label: "Enhanced Mode (TUN)", value: "On", active: true },
-                  { label: "Gateway Mode", value: "Off", active: false },
+                  { label: t.dashboard.systemProxy, value: t.status.on, active: true },
+                  { label: t.dashboard.enhancedMode, value: t.status.on, active: true },
+                  { label: t.dashboard.gatewayMode, value: t.status.off, active: false },
                 ].map((item) => (
                   <div key={item.label} className="flex items-center justify-between">
                     <span className="text-sm text-[var(--muted)]">{item.label}</span>
@@ -185,28 +188,28 @@ export default function DashboardPage() {
             </Card>
 
             <Card className="p-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-3">Server Info</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-3">{t.dashboard.serverInfo}</p>
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Server className="h-3.5 w-3.5 text-[var(--muted-foreground)]" />
-                  <span className="text-xs text-[var(--muted)] flex-1">Mihomo</span>
+                  <span className="text-xs text-[var(--muted)] flex-1">{t.dashboardExtra.mihomo}</span>
                   <span className="text-xs font-medium text-[var(--foreground)]">
-                    {isRunning ? (version ? `v${version}` : 'Running') : 'Offline'}
+                    {isRunning ? (version ? `v${version}` : t.status.running) : t.status.offline}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Globe className="h-3.5 w-3.5 text-[var(--muted-foreground)]" />
-                  <span className="text-xs text-[var(--muted)] flex-1">Exit IP</span>
+                  <span className="text-xs text-[var(--muted)] flex-1">{t.dashboard.exitIP}</span>
                   <span className="text-xs font-medium text-[var(--foreground)]">—</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Clock className="h-3.5 w-3.5 text-[var(--muted-foreground)]" />
-                  <span className="text-xs text-[var(--muted)] flex-1">Uptime</span>
+                  <span className="text-xs text-[var(--muted)] flex-1">{t.dashboard.uptime}</span>
                   <span className="text-xs font-medium text-[var(--foreground)]">—</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Cpu className="h-3.5 w-3.5 text-[var(--muted-foreground)]" />
-                  <span className="text-xs text-[var(--muted)] flex-1">Memory</span>
+                  <span className="text-xs text-[var(--muted)] flex-1">{t.dashboard.memory}</span>
                   <span className="text-xs font-medium text-[var(--foreground)]">—</span>
                 </div>
               </div>
@@ -219,14 +222,14 @@ export default function DashboardPage() {
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-semibold">
-                Recent Connections{' '}
+                {t.dashboard.recentConnections}{' '}
                 <span className="ml-1.5 text-xs font-normal text-[var(--muted)]">
                   ({connState.connections.length})
                 </span>
               </CardTitle>
               <div className="flex items-center gap-2">
-                <Button variant="ghost" size="sm" className="text-[var(--brand-500)] text-xs h-7">View all</Button>
-                <Button variant="ghost" size="sm" className="text-[var(--muted)] text-xs h-7">Clear</Button>
+                <Button variant="ghost" size="sm" className="text-[var(--brand-500)] text-xs h-7">{t.dashboard.viewAll}</Button>
+                <Button variant="ghost" size="sm" className="text-[var(--muted)] text-xs h-7">{t.dashboard.clear}</Button>
               </div>
             </div>
           </CardHeader>

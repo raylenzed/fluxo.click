@@ -23,6 +23,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Topbar } from "@/components/layout/topbar";
+import { useLocale } from "@/lib/i18n/context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -117,6 +118,7 @@ function SortableRuleRow({
   onEdit: (rule: Rule) => void;
   onDelete: (id: string) => void;
 }) {
+  const { t } = useLocale();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: rule.id });
 
@@ -176,11 +178,11 @@ function SortableRuleRow({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-40">
-            <DropdownMenuItem onClick={() => onEdit(rule)}>Edit Rule</DropdownMenuItem>
-            <DropdownMenuItem>Duplicate</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onEdit(rule)}>{t.rules.editRule}</DropdownMenuItem>
+            <DropdownMenuItem>{t.rules.duplicate}</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem className="text-red-600" onClick={() => onDelete(rule.id)}>
-              Delete
+              {t.rules.deleteItem}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -248,6 +250,9 @@ function RuleDialog({
   policies: string[];
   onSave: (rule: Omit<Rule, "id" | "matches">, notify: boolean, extendedMatch: boolean) => void;
 }) {
+  const { t } = useLocale();
+  const rT = t.rules;
+
   const [type, setType] = useState<RuleType>(editingRule?.type ?? "DOMAIN-SUFFIX");
   const [value, setValue] = useState(editingRule?.value ?? "");
   const [policy, setPolicy] = useState(editingRule?.policy ?? "Proxy");
@@ -268,18 +273,18 @@ function RuleDialog({
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-[480px]">
         <DialogHeader>
-          <DialogTitle>{editingRule ? "Edit Rule" : "New Rule"}</DialogTitle>
-          <DialogDescription>Configure the rule type, value, and target policy.</DialogDescription>
+          <DialogTitle>{editingRule ? rT.editRule : rT.newRule}</DialogTitle>
+          <DialogDescription>{rT.configureRule}</DialogDescription>
         </DialogHeader>
 
         <div className="px-6 pb-2 space-y-4">
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-[var(--muted)]">Rule Type</label>
+            <label className="text-xs font-medium text-[var(--muted)]">{rT.ruleType}</label>
             <Select value={type} onValueChange={(v) => setType(v as RuleType)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                {RULE_TYPES.map((t) => (
-                  <SelectItem key={t} value={t}>{t}</SelectItem>
+                {RULE_TYPES.map((rt) => (
+                  <SelectItem key={rt} value={rt}>{rt}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -287,7 +292,7 @@ function RuleDialog({
 
           {!isNoValue && (
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-[var(--muted)]">Value</label>
+              <label className="text-xs font-medium text-[var(--muted)]">{rT.value}</label>
               <Input
                 value={value}
                 onChange={(e) => setValue(e.target.value)}
@@ -303,7 +308,7 @@ function RuleDialog({
           )}
 
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-[var(--muted)]">Policy</label>
+            <label className="text-xs font-medium text-[var(--muted)]">{rT.policyLabel}</label>
             <Select value={policy} onValueChange={setPolicy}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -315,26 +320,26 @@ function RuleDialog({
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-[var(--muted)]">Notes (optional)</label>
+            <label className="text-xs font-medium text-[var(--muted)]">{rT.notes}</label>
             <Input
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              placeholder="Optional description"
+              placeholder={t.profiles.descriptionPlaceholder}
             />
           </div>
 
           <div className="rounded-[12px] border border-[var(--border)] bg-[var(--surface-2)] divide-y divide-[var(--border)]">
             <label className="flex items-center justify-between px-3 py-2.5 cursor-pointer">
-              <span className="text-sm text-[var(--foreground)]">Send Notification</span>
+              <span className="text-sm text-[var(--foreground)]">{rT.sendNotification}</span>
               <Switch checked={sendNotif} onCheckedChange={setSendNotif} />
             </label>
             <label className="flex items-center justify-between px-3 py-2.5 cursor-pointer">
-              <span className="text-sm text-[var(--foreground)]">Extended Matching</span>
+              <span className="text-sm text-[var(--foreground)]">{rT.extendedMatching}</span>
               <Switch checked={extendedMatch} onCheckedChange={setExtendedMatch} />
             </label>
             {isDomain && (
               <label className="flex items-center justify-between px-3 py-2.5 cursor-pointer">
-                <span className="text-sm text-[var(--foreground)]">Resolve DNS</span>
+                <span className="text-sm text-[var(--foreground)]">{rT.resolveDns}</span>
                 <Switch checked={resolveDns} onCheckedChange={setResolveDns} />
               </label>
             )}
@@ -342,9 +347,9 @@ function RuleDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="secondary" onClick={onClose}>Cancel</Button>
+          <Button variant="secondary" onClick={onClose}>{rT.cancel}</Button>
           <Button onClick={handleSave} disabled={!isNoValue && !value.trim()}>
-            {editingRule ? "Save Changes" : "Add Rule"}
+            {editingRule ? rT.saveChanges : rT.addRule}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -362,6 +367,9 @@ function RuleSetDialog({
   onClose: () => void;
   policies: string[];
 }) {
+  const { t } = useLocale();
+  const rT = t.rules;
+
   const [name, setName] = useState("");
   const [sourceType, setSourceType] = useState<"builtin" | "external">("builtin");
   const [builtinSet, setBuiltinSet] = useState(BUILTIN_RULE_SETS[0]);
@@ -379,31 +387,31 @@ function RuleSetDialog({
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-[480px]">
         <DialogHeader>
-          <DialogTitle>New Rule Set</DialogTitle>
-          <DialogDescription>Add a built-in or external rule set provider.</DialogDescription>
+          <DialogTitle>{rT.newRuleSetTitle}</DialogTitle>
+          <DialogDescription>{rT.addRuleSetDesc}</DialogDescription>
         </DialogHeader>
 
         <div className="px-6 pb-2 space-y-4">
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-[var(--muted)]">Name</label>
+            <label className="text-xs font-medium text-[var(--muted)]">{t.profiles.nameLabel}</label>
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. my-cn-rules" />
           </div>
 
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-[var(--muted)]">Source</label>
             <div className="flex gap-1.5 rounded-[10px] bg-[var(--surface-2)] p-0.5 border border-[var(--border)]">
-              {(["builtin", "external"] as const).map((t) => (
+              {(["builtin", "external"] as const).map((src) => (
                 <button
-                  key={t}
-                  onClick={() => setSourceType(t)}
+                  key={src}
+                  onClick={() => setSourceType(src)}
                   className={cn(
                     "flex-1 rounded-[8px] py-1.5 text-xs font-semibold transition-all capitalize",
-                    sourceType === t
+                    sourceType === src
                       ? "bg-[var(--brand-500)] text-white shadow-sm"
                       : "text-[var(--muted)] hover:text-[var(--foreground)]"
                   )}
                 >
-                  {t === "builtin" ? "Built-in" : "External URL"}
+                  {src === "builtin" ? rT.builtIn : rT.externalUrl}
                 </button>
               ))}
             </div>
@@ -411,7 +419,7 @@ function RuleSetDialog({
 
           {sourceType === "builtin" && (
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-[var(--muted)]">Built-in Set</label>
+              <label className="text-xs font-medium text-[var(--muted)]">{rT.builtInSet}</label>
               <Select value={builtinSet} onValueChange={setBuiltinSet}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -426,7 +434,7 @@ function RuleSetDialog({
           {sourceType === "external" && (
             <>
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-[var(--muted)]">Subscription URL</label>
+                <label className="text-xs font-medium text-[var(--muted)]">{rT.subscriptionUrl}</label>
                 <div className="flex gap-2">
                   <Input
                     value={url}
@@ -442,12 +450,12 @@ function RuleSetDialog({
                     className="shrink-0 gap-1.5"
                   >
                     <ExternalLink className="h-3.5 w-3.5" />
-                    {testing ? "Testing…" : "Test"}
+                    {testing ? rT.testing : rT.test}
                   </Button>
                 </div>
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-[var(--muted)]">Update Interval (seconds)</label>
+                <label className="text-xs font-medium text-[var(--muted)]">{rT.updateInterval}</label>
                 <Input
                   type="number"
                   value={interval}
@@ -458,7 +466,7 @@ function RuleSetDialog({
           )}
 
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-[var(--muted)]">Policy</label>
+            <label className="text-xs font-medium text-[var(--muted)]">{rT.policyLabel}</label>
             <Select value={policy} onValueChange={setPolicy}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -471,9 +479,9 @@ function RuleSetDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="secondary" onClick={onClose}>Cancel</Button>
+          <Button variant="secondary" onClick={onClose}>{rT.cancel}</Button>
           <Button onClick={onClose} disabled={!name.trim() || (sourceType === "external" && !url.trim())}>
-            Add Rule Set
+            {rT.addRuleSet}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -498,6 +506,9 @@ function SkeletonRows() {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function RulesPage() {
+  const { t } = useLocale();
+  const rT = t.rules;
+
   const [search, setSearch] = useState("");
   const [groupByPolicy, setGroupByPolicy] = useState(false);
   const [showAddRule, setShowAddRule] = useState(false);
@@ -589,22 +600,22 @@ export default function RulesPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <Topbar title="Rules" description={`${rulesQuery.data?.length ?? 0} rules configured`}>
+      <Topbar title={rT.title} description={`${rulesQuery.data?.length ?? 0} ${rT.rulesConfigured}`}>
         <Button variant="ghost" size="sm" className="gap-1.5 text-[var(--muted)]">
           <Upload className="h-3.5 w-3.5" />
-          Import
+          {rT.import}
         </Button>
         <Button variant="ghost" size="sm" className="gap-1.5 text-[var(--muted)]">
           <Download className="h-3.5 w-3.5" />
-          Export
+          {rT.export}
         </Button>
         <Button variant="secondary" size="sm" onClick={() => setShowAddRuleSet(true)} className="gap-1.5">
           <Globe className="h-3.5 w-3.5" />
-          Add Rule Set
+          {rT.addRuleSet}
         </Button>
         <Button size="sm" onClick={() => setShowAddRule(true)} className="gap-1.5">
           <Plus className="h-3.5 w-3.5" />
-          Add Rule
+          {rT.addRule}
         </Button>
       </Topbar>
 
@@ -612,8 +623,8 @@ export default function RulesPage() {
         {isError ? (
           <div className="flex flex-col items-center justify-center py-16 text-[var(--muted)]">
             <ServerCrash className="h-10 w-10 mb-3 opacity-40" />
-            <p className="text-sm font-medium">Cannot reach API server</p>
-            <p className="text-xs mt-1">Make sure the backend is running on port 8090</p>
+            <p className="text-sm font-medium">{rT.cannotReachApi}</p>
+            <p className="text-xs mt-1">{rT.backendHint}</p>
           </div>
         ) : (
           <>
@@ -624,7 +635,7 @@ export default function RulesPage() {
                 <Input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search rules…"
+                  placeholder={rT.searchRules}
                   className="pl-8 h-8 text-xs"
                 />
               </div>
@@ -639,11 +650,11 @@ export default function RulesPage() {
                 )}
               >
                 {groupByPolicy ? <FolderOpen className="h-3.5 w-3.5" /> : <LayoutList className="h-3.5 w-3.5" />}
-                {groupByPolicy ? "By Policy" : "Flat List"}
+                {groupByPolicy ? rT.byPolicy : rT.flatList}
               </button>
 
               <span className="text-xs text-[var(--muted)] ml-auto">
-                {filtered.length} / {rawRules.length} rules
+                {filtered.length} / {rawRules.length} {rT.filterCount}
               </span>
             </div>
 
@@ -658,11 +669,11 @@ export default function RulesPage() {
                   <thead className="sticky top-0 z-10 bg-[var(--surface-2)] border-b border-[var(--border)]">
                     <tr>
                       <th className="pl-3 pr-1 py-2.5 w-12" />
-                      <th className="py-2.5 pr-3 text-left text-xs font-semibold text-[var(--muted)] uppercase tracking-wider">Type</th>
-                      <th className="py-2.5 pr-3 text-left text-xs font-semibold text-[var(--muted)] uppercase tracking-wider">Value</th>
-                      <th className="py-2.5 pr-3 text-left text-xs font-semibold text-[var(--muted)] uppercase tracking-wider">Policy</th>
-                      <th className="py-2.5 pr-3 text-right text-xs font-semibold text-[var(--muted)] uppercase tracking-wider">Matches</th>
-                      <th className="py-2.5 pr-2 text-left text-xs font-semibold text-[var(--muted)] uppercase tracking-wider">Notes</th>
+                      <th className="py-2.5 pr-3 text-left text-xs font-semibold text-[var(--muted)] uppercase tracking-wider">{rT.typeCol}</th>
+                      <th className="py-2.5 pr-3 text-left text-xs font-semibold text-[var(--muted)] uppercase tracking-wider">{rT.valueCol}</th>
+                      <th className="py-2.5 pr-3 text-left text-xs font-semibold text-[var(--muted)] uppercase tracking-wider">{rT.policyCol}</th>
+                      <th className="py-2.5 pr-3 text-right text-xs font-semibold text-[var(--muted)] uppercase tracking-wider">{rT.matchesCol}</th>
+                      <th className="py-2.5 pr-2 text-left text-xs font-semibold text-[var(--muted)] uppercase tracking-wider">{rT.notesCol}</th>
                       <th className="py-2.5 pr-3 w-10" />
                     </tr>
                   </thead>
@@ -700,7 +711,7 @@ export default function RulesPage() {
                       {!isLoading && filtered.length === 0 && (
                         <tr>
                           <td colSpan={7} className="py-12 text-center text-sm text-[var(--muted)]">
-                            No rules match your search
+                            {rT.noRulesMatch}
                           </td>
                         </tr>
                       )}

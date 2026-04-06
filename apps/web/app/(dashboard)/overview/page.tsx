@@ -12,6 +12,7 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Topbar } from '@/components/layout/topbar';
 import { formatBytes, cn } from '@/lib/utils';
+import { useLocale } from '@/lib/i18n/context';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8090';
 
@@ -34,6 +35,7 @@ function CopyButton({ text }: { text: string }) {
 
 export default function OverviewPage() {
   const queryClient = useQueryClient();
+  const { t } = useLocale();
 
   // Load settings
   const { data: settings } = useQuery<Record<string, unknown>>({
@@ -100,10 +102,10 @@ export default function OverviewPage() {
       return res.json();
     },
     onSuccess: () => {
-      toast.success('TUN setting saved (apply config to activate)');
+      toast.success(t.settings.configApplied);
       queryClient.invalidateQueries({ queryKey: ['settings'] });
     },
-    onError: () => toast.error('Failed to update TUN'),
+    onError: () => toast.error(t.settings.configFailed),
   });
 
   // Apply config mutation
@@ -113,8 +115,8 @@ export default function OverviewPage() {
       if (!res.ok) throw new Error('Apply failed');
       return res.json();
     },
-    onSuccess: () => toast.success('Config reloaded'),
-    onError: () => toast.error('Failed to reload config'),
+    onSuccess: () => toast.success(t.settings.configApplied),
+    onError: () => toast.error(t.settings.configFailed),
   });
 
   // Derive values from settings
@@ -126,32 +128,32 @@ export default function OverviewPage() {
   const memoryInuse = memoryData?.inuse;
 
   const proxyAddresses = [
-    { label: 'HTTP Proxy', value: `127.0.0.1:${mixedPort}` },
-    { label: 'SOCKS5', value: `127.0.0.1:${mixedPort}` },
-    { label: 'Mixed Port', value: `127.0.0.1:${mixedPort}` },
+    { label: t.overview.httpProxy, value: `127.0.0.1:${mixedPort}` },
+    { label: t.overview.socks5, value: `127.0.0.1:${mixedPort}` },
+    { label: t.overview.mixedPort, value: `127.0.0.1:${mixedPort}` },
   ];
 
   const statusItems = [
     {
-      label: 'Mode',
+      label: t.overview.mode,
       value: currentMode.charAt(0).toUpperCase() + currentMode.slice(1),
       icon: Activity,
       iconColor: 'bg-[var(--brand-100)] text-[var(--brand-500)] dark:bg-[var(--brand-500)]/20',
     },
     {
-      label: 'Connections',
+      label: t.system.connections,
       value: String(connectionCount),
       icon: Wifi,
       iconColor: 'bg-sky-50 text-sky-500 dark:bg-sky-500/20',
     },
     {
-      label: 'Memory',
+      label: t.overview.memoryUsage,
       value: memoryInuse != null ? formatBytes(memoryInuse) : 'N/A',
       icon: Cpu,
       iconColor: 'bg-amber-50 text-amber-500 dark:bg-amber-500/20',
     },
     {
-      label: 'Uptime',
+      label: t.dashboard.uptime,
       value: 'N/A',
       icon: Clock,
       iconColor: 'bg-emerald-50 text-emerald-500 dark:bg-emerald-500/20',
@@ -160,7 +162,7 @@ export default function OverviewPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <Topbar title="Overview" description="Network control center">
+      <Topbar title={t.overview.title} description={t.overview.subtitle}>
         <Button
           size="sm"
           variant="outline"
@@ -169,7 +171,7 @@ export default function OverviewPage() {
           disabled={applyConfig.isPending}
         >
           <RefreshCw className={cn('h-3.5 w-3.5', applyConfig.isPending && 'animate-spin')} />
-          {applyConfig.isPending ? 'Reloading…' : 'Reload Config'}
+          {applyConfig.isPending ? t.common.loading : t.overview.reloadConfig}
         </Button>
       </Topbar>
 
@@ -193,7 +195,7 @@ export default function OverviewPage() {
           {/* Network Mode */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold">Network Mode</CardTitle>
+              <CardTitle className="text-sm font-semibold">{t.overview.networkMode}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* System Proxy — OS-level, not directly controllable on Linux VPS */}
@@ -203,7 +205,7 @@ export default function OverviewPage() {
                   <p className="text-xs text-[var(--muted)] mt-0.5">System proxy is managed at OS level on Linux</p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <Badge variant="secondary">OS-managed</Badge>
+                  <Badge variant="secondary">{t.overview.osManaged}</Badge>
                 </div>
               </div>
 
@@ -214,7 +216,7 @@ export default function OverviewPage() {
                   <p className="text-xs text-[var(--muted)] mt-0.5">Capture all traffic via virtual NIC</p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <Badge variant={tunEnabled ? 'success' : 'secondary'}>{tunEnabled ? 'Active' : 'Inactive'}</Badge>
+                  <Badge variant={tunEnabled ? 'success' : 'secondary'}>{tunEnabled ? t.status.active : t.status.inactive}</Badge>
                   <Switch
                     checked={tunEnabled}
                     onCheckedChange={(v) => tunMutation.mutate(v)}
@@ -230,7 +232,7 @@ export default function OverviewPage() {
                   <p className="text-xs text-[var(--muted)] mt-0.5">Act as gateway for LAN devices</p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <Badge variant="secondary">Inactive</Badge>
+                  <Badge variant="secondary">{t.status.inactive}</Badge>
                   <Switch checked={false} disabled />
                 </div>
               </div>
@@ -240,7 +242,7 @@ export default function OverviewPage() {
           {/* Proxy Addresses */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold">Proxy Addresses</CardTitle>
+              <CardTitle className="text-sm font-semibold">{t.overview.proxyAddresses}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               {proxyAddresses.map((addr) => (
@@ -261,12 +263,12 @@ export default function OverviewPage() {
           {/* Connection Info */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold">Connection Info</CardTitle>
+              <CardTitle className="text-sm font-semibold">{t.overview.connectionInfo}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               {[
-                { label: 'External Controller', value: externalController, icon: Globe },
-                { label: 'API Secret', value: '••••••••••••••••', icon: Lock },
+                { label: t.overview.externalController, value: externalController, icon: Globe },
+                { label: t.overview.apiSecret, value: '••••••••••••••••', icon: Lock },
                 { label: 'Web Dashboard', value: `http://${externalController}/ui`, icon: LayoutDashboard },
               ].map((info) => (
                 <div key={info.label} className="flex items-center gap-3">
@@ -286,12 +288,12 @@ export default function OverviewPage() {
           {/* Mihomo Status */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold">Mihomo Core</CardTitle>
+              <CardTitle className="text-sm font-semibold">{t.overview.mihomoCore}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center gap-3">
                 <Badge variant={mihomoStatus?.running ? 'success' : 'destructive'}>
-                  {mihomoStatus?.running ? 'Running' : 'Stopped'}
+                  {mihomoStatus?.running ? t.status.running : t.status.stopped}
                 </Badge>
                 {mihomoStatus?.version && (
                   <span className="text-xs text-[var(--muted)] font-mono">{mihomoStatus.version}</span>
@@ -303,7 +305,7 @@ export default function OverviewPage() {
                   <ArrowDown className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-xs text-[var(--muted)] font-medium">Downloaded</p>
+                  <p className="text-xs text-[var(--muted)] font-medium">{t.overview.downloaded}</p>
                   <p className="text-2xl font-extrabold text-[var(--foreground)] tracking-tighter">—</p>
                 </div>
               </div>
@@ -312,7 +314,7 @@ export default function OverviewPage() {
                   <ArrowUp className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-xs text-[var(--muted)] font-medium">Uploaded</p>
+                  <p className="text-xs text-[var(--muted)] font-medium">{t.overview.uploaded}</p>
                   <p className="text-2xl font-extrabold text-[var(--foreground)] tracking-tighter">—</p>
                 </div>
               </div>

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Topbar } from "@/components/layout/topbar";
+import { useLocale } from "@/lib/i18n/context";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -35,6 +36,7 @@ function useDnsConfig() {
 }
 
 function useSaveDns() {
+  const { t } = useLocale();
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (data: DnsConfig) => {
@@ -48,13 +50,14 @@ function useSaveDns() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["dns"] });
-      toast.success("DNS settings saved");
+      toast.success(t.dns.saved);
     },
-    onError: () => toast.error("Failed to save DNS settings"),
+    onError: () => toast.error(t.dns.saveFailed),
   });
 }
 
 export default function DNSPage() {
+  const { t } = useLocale();
   const { data, isLoading } = useDnsConfig();
   const saveDns = useSaveDns();
 
@@ -92,7 +95,7 @@ export default function DNSPage() {
   if (isLoading) {
     return (
       <div className="flex flex-col h-full">
-        <Topbar title="DNS" description="DNS configuration" />
+        <Topbar title={t.dns.title} description={t.dns.subtitle} />
         <div className="flex-1 flex items-center justify-center">
           <Loader2 className="h-6 w-6 animate-spin text-[var(--muted)]" />
         </div>
@@ -108,7 +111,7 @@ export default function DNSPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <Topbar title="DNS" description="DNS configuration">
+      <Topbar title={t.dns.title} description={t.dns.subtitle}>
         <Button
           size="sm"
           onClick={handleSave}

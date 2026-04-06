@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Topbar } from "@/components/layout/topbar";
+import { useLocale } from "@/lib/i18n/context";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -43,6 +44,7 @@ function formatInterval(seconds: number): string {
 }
 
 export default function ProvidersPage() {
+  const { t } = useLocale();
   const qc = useQueryClient();
   const { data: providers = [], isLoading } = useProviders();
 
@@ -141,7 +143,7 @@ export default function ProvidersPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <Topbar title="Providers" description="Manage proxy subscription providers">
+      <Topbar title={t.providers.title} description={t.providers.subtitle}>
         <Button onClick={openNew} size="sm" className="gap-1.5 text-xs bg-[var(--brand-500)] hover:bg-[var(--brand-600)] text-white">
           <Plus className="h-3.5 w-3.5" />
           Add Provider

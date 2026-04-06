@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Topbar } from "@/components/layout/topbar";
+import { useLocale } from "@/lib/i18n/context";
 import { toast } from "sonner";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8090";
@@ -69,6 +70,8 @@ function SectionCard({ title, children }: { title: string; children: React.React
 }
 
 export default function SettingsPage() {
+  const { t } = useLocale();
+  const sT = t.settings;
   const { data: settings, isLoading } = useSettings();
   const saveSettings = useSaveSettings();
 
@@ -122,16 +125,16 @@ export default function SettingsPage() {
     try {
       const res = await fetch(`${API}/api/config/apply`, { method: "POST" });
       if (!res.ok) throw new Error("Failed to apply");
-      toast.success("Config applied to Mihomo");
+      toast.success(sT.configApplied);
     } catch {
-      toast.error("Failed to apply config");
+      toast.error(sT.configFailed);
     }
   };
 
   if (isLoading) {
     return (
       <div className="flex flex-col h-full">
-        <Topbar title="Settings" description="Configure Mihomo behavior" />
+        <Topbar title={sT.title} description={sT.subtitle} />
         <div className="flex-1 flex items-center justify-center">
           <Loader2 className="h-6 w-6 animate-spin text-[var(--muted)]" />
         </div>
@@ -141,7 +144,7 @@ export default function SettingsPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <Topbar title="Settings" description="Configure Mihomo behavior">
+      <Topbar title={sT.title} description={sT.subtitle}>
         <Button
           variant="outline"
           size="sm"
@@ -149,7 +152,7 @@ export default function SettingsPage() {
           onClick={handleApplyConfig}
         >
           <RefreshCw className="h-3.5 w-3.5" />
-          Apply Config
+          {sT.applyConfig}
         </Button>
         <Button
           size="sm"
@@ -158,21 +161,21 @@ export default function SettingsPage() {
           className="gap-1.5 text-xs bg-[var(--brand-500)] hover:bg-[var(--brand-600)] text-white"
         >
           {saveSettings.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-          Save Settings
+          {sT.saveSettings}
         </Button>
       </Topbar>
       <div className="flex-1 p-6 overflow-auto space-y-5">
         <Tabs defaultValue="general">
           <TabsList>
-            <TabsTrigger value="general">General</TabsTrigger>
-            <TabsTrigger value="tun">TUN</TabsTrigger>
-            <TabsTrigger value="remote">Remote</TabsTrigger>
+            <TabsTrigger value="general">{sT.tabGeneral}</TabsTrigger>
+            <TabsTrigger value="tun">{sT.tabTun}</TabsTrigger>
+            <TabsTrigger value="remote">{sT.tabRemote}</TabsTrigger>
           </TabsList>
 
           {/* General Tab */}
           <TabsContent value="general" className="mt-5 space-y-4">
-            <SectionCard title="Network">
-              <SettingRow label="Mixed Port" description="HTTP/SOCKS5 mixed proxy port">
+            <SectionCard title={sT.sectionNetwork}>
+              <SettingRow label={sT.mixedPort} description={sT.mixedPortDesc}>
                 <Input
                   value={mixedPort}
                   onChange={(e) => setMixedPort(Number(e.target.value))}
@@ -180,16 +183,16 @@ export default function SettingsPage() {
                   className="w-24 text-right"
                 />
               </SettingRow>
-              <SettingRow label="Allow LAN" description="Accept connections from other devices on the network">
+              <SettingRow label={sT.allowLan} description={sT.allowLanDesc}>
                 <Switch checked={allowLAN} onCheckedChange={setAllowLAN} />
               </SettingRow>
-              <SettingRow label="IPv6" description="Enable IPv6 support">
+              <SettingRow label={sT.ipv6} description={sT.ipv6Desc}>
                 <Switch checked={ipv6} onCheckedChange={setIpv6} />
               </SettingRow>
             </SectionCard>
 
-            <SectionCard title="Logs">
-              <SettingRow label="Log Level" description="Verbosity of Mihomo core logs">
+            <SectionCard title={sT.sectionLogs}>
+              <SettingRow label={sT.logLevel} description={sT.logLevelDesc}>
                 <Select value={logLevel} onValueChange={setLogLevel}>
                   <SelectTrigger className="w-36">
                     <SelectValue />
@@ -208,11 +211,11 @@ export default function SettingsPage() {
 
           {/* TUN Tab */}
           <TabsContent value="tun" className="mt-5 space-y-4">
-            <SectionCard title="TUN Mode">
-              <SettingRow label="Enable TUN" description="Enable TUN virtual network interface for transparent proxying">
+            <SectionCard title={sT.sectionTun}>
+              <SettingRow label={sT.enableTun} description={sT.enableTunDesc}>
                 <Switch checked={tunEnable} onCheckedChange={setTunEnable} />
               </SettingRow>
-              <SettingRow label="Stack" description="TUN stack implementation">
+              <SettingRow label={sT.stack} description={sT.stackDesc}>
                 <Select value={tunStack} onValueChange={setTunStack}>
                   <SelectTrigger className="w-32">
                     <SelectValue />
@@ -224,15 +227,15 @@ export default function SettingsPage() {
                   </SelectContent>
                 </Select>
               </SettingRow>
-              <SettingRow label="Auto Route" description="Auto-configure routing table for TUN">
+              <SettingRow label={sT.autoRoute} description={sT.autoRouteDesc}>
                 <Switch checked={tunAutoRoute} onCheckedChange={setTunAutoRoute} />
               </SettingRow>
             </SectionCard>
 
-            <SectionCard title="DNS Hijack">
+            <SectionCard title={sT.sectionDnsHijack}>
               <div className="py-3 space-y-2">
-                <p className="text-sm font-medium text-[var(--foreground)]">DNS Hijack Address</p>
-                <p className="text-xs text-[var(--muted)]">Intercept DNS queries at this address (e.g. any:53)</p>
+                <p className="text-sm font-medium text-[var(--foreground)]">{sT.dnsHijackAddr}</p>
+                <p className="text-xs text-[var(--muted)]">{sT.dnsHijackAddrDesc}</p>
                 <Input
                   value={tunDnsHijack}
                   onChange={(e) => setTunDnsHijack(e.target.value)}
@@ -245,10 +248,10 @@ export default function SettingsPage() {
 
           {/* Remote Tab */}
           <TabsContent value="remote" className="mt-5 space-y-4">
-            <SectionCard title="Controller">
+            <SectionCard title={sT.sectionController}>
               <div className="py-3 border-b border-[var(--border)] space-y-2">
-                <p className="text-sm font-medium text-[var(--foreground)]">External Controller</p>
-                <p className="text-xs text-[var(--muted)]">Address for the Mihomo REST API (host:port)</p>
+                <p className="text-sm font-medium text-[var(--foreground)]">{sT.externalController}</p>
+                <p className="text-xs text-[var(--muted)]">{sT.externalControllerDesc}</p>
                 <Input
                   value={externalController}
                   onChange={(e) => setExternalController(e.target.value)}
@@ -257,13 +260,13 @@ export default function SettingsPage() {
                 />
               </div>
               <div className="py-3 space-y-2">
-                <p className="text-sm font-medium text-[var(--foreground)]">API Secret</p>
-                <p className="text-xs text-[var(--muted)]">Bearer token for external controller authentication</p>
+                <p className="text-sm font-medium text-[var(--foreground)]">{sT.apiSecret}</p>
+                <p className="text-xs text-[var(--muted)]">{sT.apiSecretDesc}</p>
                 <Input
                   value={secret}
                   onChange={(e) => setSecret(e.target.value)}
                   type="password"
-                  placeholder="Leave blank for no authentication"
+                  placeholder={sT.apiSecretHint}
                 />
               </div>
             </SectionCard>
