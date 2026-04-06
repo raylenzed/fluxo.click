@@ -22,11 +22,21 @@ type Protocol =
 
 type IV = Record<string, string>;
 
-interface ProxyNodeDialogProps {
+// Map lowercase DB type strings back to Protocol display names
+const TYPE_TO_PROTOCOL: Record<string, Protocol> = {
+  http: "HTTP", https: "HTTPS", socks5: "SOCKS5", "socks5-tls": "SOCKS5-TLS",
+  ss: "SS", vmess: "VMess", vless: "VLESS", trojan: "Trojan", snell: "Snell",
+  tuic: "TUIC", tuicv5: "TUICv5", hysteria2: "Hysteria2", wireguard: "WireGuard",
+  anytls: "AnyTLS", ssh: "SSH",
+};
+
+export interface ProxyNodeDialogProps {
   open: boolean;
   onClose: () => void;
   onSave?: (data: { name: string; type: string; server: string; port: number; config: Record<string, unknown> }) => void;
   initialProtocol?: Protocol;
+  /** When provided, dialog is in edit mode and fields are pre-filled */
+  editNode?: { id: string; name: string; type: string; server: string; port: number; config: string };
 }
 
 // ─── URL Parser ───────────────────────────────────────────────────────────────
@@ -583,20 +593,26 @@ function ProtocolFields({ protocol, iv, fieldKey }: { protocol: Protocol; iv: IV
 }
 
 // ─── Dialog ────────────────────────────────────────────────────────────────────
-export function ProxyNodeDialog({ open, onClose, onSave, initialProtocol = "VMess" }: ProxyNodeDialogProps) {
+export function ProxyNodeDialog({ open, onClose, onSave, initialProtocol = "VMess", editNode }: ProxyNodeDialogProps) {
   const { t } = useLocale();
   const pT = t.proxyNode;
 
-  const [protocol, setProtocol] = useState<Protocol>(initialProtocol);
-  const [name, setName] = useState("");
-  const [server, setServer] = useState("");
-  const [port, setPort] = useState("");
-  const [udp, setUdp] = useState(false);
-  const [tfo, setTfo] = useState(false);
-  const [remarks, setRemarks] = useState("");
+  // Resolve initial values from editNode (edit mode) or defaults (create mode)
+  const initProtocol: Protocol = editNode
+    ? (TYPE_TO_PROTOCOL[editNode.type] ?? "VMess")
+    : initialProtocol;
+  const initConfig = editNode ? (() => { try { return JSON.parse(editNode.config) as Record<string, string>; } catch { return {}; } })() : {};
+
+  const [protocol, setProtocol] = useState<Protocol>(initProtocol);
+  const [name, setName] = useState(editNode?.name ?? "");
+  const [server, setServer] = useState(editNode?.server ?? "");
+  const [port, setPort] = useState(editNode ? String(editNode.port) : "");
+  const [udp, setUdp] = useState(Boolean(initConfig.udp));
+  const [tfo, setTfo] = useState(Boolean(initConfig.tfo));
+  const [remarks, setRemarks] = useState(initConfig.remarks ?? "");
   const [testing, setTesting] = useState(false);
   const [pasteUrl, setPasteUrl] = useState("");
-  const [iv, setIv] = useState<IV>({});
+  const [iv, setIv] = useState<IV>(initConfig);
   const [fieldKey, setFieldKey] = useState(0);
 
   function handlePaste(raw: string) {
@@ -625,7 +641,7 @@ export function ProxyNodeDialog({ open, onClose, onSave, initialProtocol = "VMes
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{pT.title}</DialogTitle>
+          <DialogTitle>{editNode ? pT.titleEdit : pT.title}</DialogTitle>
           <DialogDescription>{pT.description}</DialogDescription>
         </DialogHeader>
 
@@ -707,7 +723,7 @@ export function ProxyNodeDialog({ open, onClose, onSave, initialProtocol = "VMes
           </Button>
           <Button variant="secondary" onClick={onClose}>{pT.cancel}</Button>
           <Button onClick={() => { onSave?.({ name: name.trim(), type: protocol.toLowerCase(), server: server.trim(), port: parseInt(port, 10), config: { udp, tfo, remarks } }); onClose(); }} disabled={!name.trim() || !server.trim() || !port}>
-            {pT.saveNode}
+            {editNode ? pT.saveChanges : pT.saveNode}
           </Button>
         </DialogFooter>
       </DialogContent>

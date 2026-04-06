@@ -7,12 +7,13 @@ async function proxy(req: NextRequest, params: Promise<{ path: string[] }>) {
   const { path } = await params;
   const url = `${BACKEND}/api/${path.join('/')}${req.nextUrl.search}`;
 
-  const body =
-    req.method !== 'GET' && req.method !== 'HEAD' ? await req.text() : undefined;
+  const rawBody = req.method !== 'GET' && req.method !== 'HEAD' ? await req.text() : undefined;
+  // Don't forward empty body — Fastify rejects empty string with Content-Type: application/json
+  const body = rawBody || undefined;
 
   const res = await fetch(url, {
     method: req.method,
-    headers: { 'content-type': 'application/json' },
+    headers: body ? { 'content-type': 'application/json' } : {},
     body,
   });
 

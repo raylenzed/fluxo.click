@@ -1,8 +1,9 @@
 import type { FastifyPluginAsync } from 'fastify';
 import fs from 'fs/promises';
 import path from 'path';
-import { generateConfig } from './config.generator';
+import { generateConfig, writeConfigAndReload } from './config.generator';
 import { reloadConfig } from '../mihomo/mihomo.service';
+import { getSetting } from '../settings/settings.service';
 
 function getConfigPath(): string {
   return process.env.CONFIG_PATH || '/etc/mihomo/config.yaml';
@@ -36,6 +37,21 @@ export const configRoutes: FastifyPluginAsync = async (fastify) => {
     } catch (err) {
       fastify.log.error(err);
       reply.code(500).send({ error: 'Failed to generate config' });
+    }
+  });
+
+  // POST /api/config/apply — generate from DB, write, reload mihomo
+  fastify.post('/config/apply', async (_req, reply) => {
+    try {
+      const configPath = getConfigPath();
+      const apiHost = (getSetting('mihomo.external_controller') as string) || '127.0.0.1:9090';
+      const mihomoApiUrl = `http://${apiHost}`;
+      const mihomoSecret = (getSetting('mihomo.secret') as string) || undefined;
+      await writeConfigAndReload(configPath, mihomoApiUrl, mihomoSecret);
+      return { ok: true, configPath };
+    } catch (err) {
+      fastify.log.error(err);
+      reply.code(500).send({ error: 'Failed to apply config' });
     }
   });
 

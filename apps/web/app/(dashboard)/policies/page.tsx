@@ -14,6 +14,7 @@ import {
   useProxies,
   useGroups,
   useCreateProxy,
+  useUpdateProxy,
   useDeleteProxy,
   useCreateGroup,
   useDeleteGroup,
@@ -229,12 +230,14 @@ export default function PoliciesPage() {
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [showNewGroup, setShowNewGroup] = useState(false);
   const [showAddNode, setShowAddNode] = useState(false);
+  const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
   const { t } = useLocale();
 
   const proxiesQuery = useProxies();
   const groupsQuery = useGroups();
   const createProxy = useCreateProxy();
   const deleteProxy = useDeleteProxy();
+  const updateProxy = useUpdateProxy();
   const createGroup = useCreateGroup();
   const deleteGroup = useDeleteGroup();
   const applyConfig = useApplyConfig();
@@ -316,7 +319,7 @@ export default function PoliciesPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-36">
-                          <DropdownMenuItem>{t.policies.editNode}</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setEditingNodeId(node.id)}>{t.policies.editNode}</DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
                             className="text-red-600"
@@ -391,8 +394,14 @@ export default function PoliciesPage() {
       <ProxyNodeDialog
         open={showAddNode}
         onClose={() => setShowAddNode(false)}
+        onSave={(data) => createProxy.mutate(data)}
+      />
+      <ProxyNodeDialog
+        open={editingNodeId !== null}
+        onClose={() => setEditingNodeId(null)}
+        editNode={proxyNodes.find((n) => n.id === editingNodeId)}
         onSave={(data) => {
-          createProxy.mutate(data);
+          if (editingNodeId) updateProxy.mutate({ id: editingNodeId, data });
         }}
       />
     </div>
