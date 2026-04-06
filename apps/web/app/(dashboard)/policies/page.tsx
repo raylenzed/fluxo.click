@@ -78,11 +78,13 @@ function GroupCard({
   proxyNodes,
   onEdit,
   onDelete,
+  onLatencyTest,
 }: {
   group: GroupRow;
   proxyNodes: ProxyRow[];
   onEdit: () => void;
   onDelete: () => void;
+  onLatencyTest: () => void;
 }) {
   const [showNodes, setShowNodes] = useState(false);
   const { t } = useLocale();
@@ -133,8 +135,7 @@ function GroupCard({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-44">
             <DropdownMenuItem onClick={onEdit}>{t.policies.editGroup}</DropdownMenuItem>
-            <DropdownMenuItem>{t.policies.duplicate}</DropdownMenuItem>
-            <DropdownMenuItem>{t.policies.latencyTest}</DropdownMenuItem>
+            <DropdownMenuItem onClick={onLatencyTest}>{t.policies.latencyTest}</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem className="text-red-600" onClick={onDelete}>{t.policies.deleteGroup}</DropdownMenuItem>
           </DropdownMenuContent>
@@ -166,7 +167,13 @@ function GroupCard({
           <NodeCard
             node={{ name: "DIRECT", type: "builtin", latency: 0 }}
             selected={selectedProxy === "DIRECT"}
-            onClick={() => toast.info(t.policies.selectComingSoon)}
+            onClick={async () => {
+              await fetch(`/api/mihomo/proxies/${encodeURIComponent(group.name)}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name: "DIRECT" }),
+              }).catch(() => {});
+            }}
           />
           {proxyNodes.map((node) => {
             let latency = 0;
@@ -181,7 +188,13 @@ function GroupCard({
                 key={node.id}
                 node={{ name: node.name, type: node.type, latency }}
                 selected={selectedProxy === node.name}
-                onClick={() => toast.info(t.policies.selectComingSoon)}
+                onClick={async () => {
+                  await fetch(`/api/mihomo/proxies/${encodeURIComponent(group.name)}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ name: node.name }),
+                  }).catch(() => {});
+                }}
               />
             );
           })}
@@ -233,6 +246,35 @@ export default function PoliciesPage() {
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
   const { t } = useLocale();
 
+  async function switchMode(mode: string) {
+    setOutboundMode(mode);
+    try {
+      await fetch("/api/mihomo/mode", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode }),
+      });
+    } catch { /* ignore if mihomo unreachable */ }
+  }
+
+  async function testNodeLatency(name: string) {
+    try {
+      const res = await fetch("/api/mihomo/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      if (res.ok) {
+        const data = await res.json() as { delay?: number };
+        toast.success(`${name}: ${data.delay ?? "?"}ms`);
+      } else {
+        toast.error(`${name}: timeout`);
+      }
+    } catch {
+      toast.error(`${name}: unreachable`);
+    }
+  }
+
   const proxiesQuery = useProxies();
   const groupsQuery = useGroups();
   const createProxy = useCreateProxy();
@@ -252,7 +294,7 @@ export default function PoliciesPage() {
       <Topbar title={t.policies.title} description={`${proxyNodes.length} nodes · ${proxyGroups.length} groups`}>
         <ModeSegment
           value={outboundMode}
-          onChange={setOutboundMode}
+          onChange={switchMode}
           options={[
             { label: t.topbar.direct, value: "direct" },
             { label: t.topbar.global, value: "global" },
@@ -320,6 +362,7 @@ export default function PoliciesPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-36">
                           <DropdownMenuItem onClick={() => setEditingNodeId(node.id)}>{t.policies.editNode}</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => testNodeLatency(node.name)}>{t.policies.latencyTest}</DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
                             className="text-red-600"
@@ -365,6 +408,7 @@ export default function PoliciesPage() {
                   proxyNodes={proxyNodes}
                   onEdit={() => setEditingGroupId(group.id)}
                   onDelete={() => deleteGroup.mutate(group.id)}
+                  onLatencyTest={() => testNodeLatency(group.name)}
                 />
               ))}
               <button

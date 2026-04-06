@@ -19,7 +19,16 @@ function broadcast(data: unknown) {
   }
 }
 
-function getMihomoConfig() {
+function getMihomoWsConfig(): { host: string; secret: string } {
+  // Env var takes precedence (Docker / systemd overrides)
+  if (process.env.MIHOMO_API_URL) {
+    try {
+      const url = new URL(process.env.MIHOMO_API_URL);
+      return { host: url.host, secret: process.env.MIHOMO_SECRET || '' };
+    } catch {
+      // fall through to DB
+    }
+  }
   const db = getDb();
   const apiUrlRow = db.prepare("SELECT value FROM settings WHERE key = 'mihomo.external_controller'").get() as
     | { value: string }
@@ -32,71 +41,77 @@ function getMihomoConfig() {
   return { host, secret };
 }
 
+/**
+ * Creates a resilient WebSocket relay to a Mihomo endpoint.
+ * Uses exponential backoff (5s → 60s cap) and guarantees exactly one
+ * reconnect timer at a time, preventing the timer-accumulation OOM bug.
+ */
+function makeRelay(
+  urlFn: () => string,
+  onMessage: (parsed: unknown) => void
+): void {
+  let retryDelay = 5_000;
+  let timer: ReturnType<typeof setTimeout> | null = null;
+
+  function connect() {
+    let connected = false;
+    let closed = false;
+
+    const ws = new WebSocket(urlFn());
+
+    ws.on('open', () => { connected = true; });
+
+    ws.on('message', (data) => {
+      retryDelay = 5_000; // reset backoff on successful message
+      try { onMessage(JSON.parse(data.toString())); } catch { /* ignore malformed */ }
+    });
+
+    // error is always followed by close in Node.js ws — just suppress it
+    ws.on('error', () => {});
+
+    ws.on('close', () => {
+      if (closed) return; // guard against double-fire
+      closed = true;
+      if (timer) { clearTimeout(timer); timer = null; }
+      const delay = connected ? 5_000 : retryDelay; // fast retry after clean close
+      retryDelay = Math.min(retryDelay * 2, 60_000);
+      timer = setTimeout(() => { timer = null; connect(); }, delay);
+    });
+  }
+
+  // Stagger initial connections to avoid hammering Mihomo on startup
+  setTimeout(connect, 3_000);
+}
+
 export function startMihomoRelay() {
-  const { host, secret } = getMihomoConfig();
-  const tokenSuffix = secret ? `?token=${secret}` : '';
+  const { host, secret } = getMihomoWsConfig();
+  const tokenSuffix = secret ? `?token=${encodeURIComponent(secret)}` : '';
 
-  // Relay traffic stream
-  const trafficWsUrl = `ws://${host}/traffic${tokenSuffix}`;
-  function connectTraffic() {
-    const ws = new WebSocket(trafficWsUrl);
-    ws.on('message', (data) => {
-      try {
-        const parsed = JSON.parse(data.toString());
-        broadcast({ type: 'traffic', data: parsed });
-      } catch {
-        // ignore malformed messages
-      }
-    });
-    ws.on('error', () => setTimeout(connectTraffic, 5000));
-    ws.on('close', () => setTimeout(connectTraffic, 5000));
-  }
+  makeRelay(
+    () => `ws://${host}/traffic${tokenSuffix}`,
+    (parsed) => broadcast({ type: 'traffic', data: parsed })
+  );
 
-  // Relay connections stream
-  const connectionsWsUrl = `ws://${host}/connections${tokenSuffix}`;
-  function connectConnections() {
-    const ws = new WebSocket(connectionsWsUrl);
-    ws.on('message', (data) => {
-      try {
-        const parsed = JSON.parse(data.toString()) as {
-          connections?: unknown[];
-          downloadTotal?: number;
-          uploadTotal?: number;
-        };
-        broadcast({
-          type: 'connections',
-          data: {
-            connections: parsed.connections ?? [],
-            downloadTotal: parsed.downloadTotal ?? 0,
-            uploadTotal: parsed.uploadTotal ?? 0,
-          },
-        });
-      } catch {
-        // ignore malformed messages
-      }
-    });
-    ws.on('error', () => setTimeout(connectConnections, 5000));
-    ws.on('close', () => setTimeout(connectConnections, 5000));
-  }
+  makeRelay(
+    () => `ws://${host}/connections${tokenSuffix}`,
+    (parsed) => {
+      const p = parsed as { connections?: unknown[]; downloadTotal?: number; uploadTotal?: number };
+      broadcast({
+        type: 'connections',
+        data: {
+          connections: p.connections ?? [],
+          downloadTotal: p.downloadTotal ?? 0,
+          uploadTotal: p.uploadTotal ?? 0,
+        },
+      });
+    }
+  );
 
-  // Relay log stream
-  const logsWsUrl = `ws://${host}/logs${tokenSuffix}`;
-  function connectLogs() {
-    const ws = new WebSocket(logsWsUrl);
-    ws.on('message', (data) => {
-      try {
-        const parsed = JSON.parse(data.toString()) as { type?: string; payload?: string };
-        broadcast({ type: 'log', data: { type: parsed.type ?? 'info', payload: parsed.payload ?? '' } });
-      } catch {
-        // ignore malformed messages
-      }
-    });
-    ws.on('error', () => setTimeout(connectLogs, 5000));
-    ws.on('close', () => setTimeout(connectLogs, 5000));
-  }
-
-  // Start connections with a delay to allow Mihomo to start
-  setTimeout(connectTraffic, 3000);
-  setTimeout(connectConnections, 3000);
-  setTimeout(connectLogs, 3000);
+  makeRelay(
+    () => `ws://${host}/logs${tokenSuffix}`,
+    (parsed) => {
+      const p = parsed as { type?: string; payload?: string };
+      broadcast({ type: 'log', data: { type: p.type ?? 'info', payload: p.payload ?? '' } });
+    }
+  );
 }

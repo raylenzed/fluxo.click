@@ -1,7 +1,15 @@
 import axios from 'axios';
 import { getDb } from '../../database/db';
 
+const TIMEOUT = 5_000;
+
 function getMihomoConfig(): { apiUrl: string; secret: string } {
+  if (process.env.MIHOMO_API_URL) {
+    return {
+      apiUrl: process.env.MIHOMO_API_URL,
+      secret: process.env.MIHOMO_SECRET || '',
+    };
+  }
   const db = getDb();
   const apiUrlRow = db.prepare("SELECT value FROM settings WHERE key = 'mihomo.external_controller'").get() as
     | { value: string }
@@ -22,14 +30,14 @@ function getHeaders(secret: string): Record<string, string> {
 
 export async function getMihomoVersion() {
   const { apiUrl, secret } = getMihomoConfig();
-  const res = await axios.get(`${apiUrl}/version`, { headers: getHeaders(secret) });
+  const res = await axios.get(`${apiUrl}/version`, { headers: getHeaders(secret), timeout: TIMEOUT });
   return res.data;
 }
 
 export async function getMihomoStatus() {
   const { apiUrl, secret } = getMihomoConfig();
   try {
-    const version = await axios.get(`${apiUrl}/version`, { headers: getHeaders(secret) });
+    const version = await axios.get(`${apiUrl}/version`, { headers: getHeaders(secret), timeout: TIMEOUT });
     return { running: true, version: version.data.version };
   } catch {
     return { running: false, version: null };
@@ -38,27 +46,27 @@ export async function getMihomoStatus() {
 
 export async function reloadConfig(configPath: string) {
   const { apiUrl, secret } = getMihomoConfig();
-  await axios.put(`${apiUrl}/configs`, { path: configPath }, { headers: getHeaders(secret) });
+  await axios.put(`${apiUrl}/configs`, { path: configPath }, { headers: getHeaders(secret), timeout: TIMEOUT });
 }
 
 export async function getMihomoConnections() {
   const { apiUrl, secret } = getMihomoConfig();
-  const res = await axios.get(`${apiUrl}/connections`, { headers: getHeaders(secret) });
+  const res = await axios.get(`${apiUrl}/connections`, { headers: getHeaders(secret), timeout: TIMEOUT });
   return res.data;
 }
 
 export async function closeConnection(id: string) {
   const { apiUrl, secret } = getMihomoConfig();
-  await axios.delete(`${apiUrl}/connections/${id}`, { headers: getHeaders(secret) });
+  await axios.delete(`${apiUrl}/connections/${id}`, { headers: getHeaders(secret), timeout: TIMEOUT });
 }
 
 export async function closeAllConnections() {
   const { apiUrl, secret } = getMihomoConfig();
-  await axios.delete(`${apiUrl}/connections`, { headers: getHeaders(secret) });
+  await axios.delete(`${apiUrl}/connections`, { headers: getHeaders(secret), timeout: TIMEOUT });
 }
 
 export async function getTrafficStats() {
   const { apiUrl, secret } = getMihomoConfig();
-  const res = await axios.get(`${apiUrl}/traffic`, { headers: getHeaders(secret) });
+  const res = await axios.get(`${apiUrl}/traffic`, { headers: getHeaders(secret), timeout: TIMEOUT });
   return res.data;
 }

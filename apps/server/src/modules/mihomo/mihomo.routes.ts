@@ -191,6 +191,23 @@ export const mihomoRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
+  // PUT /api/mihomo/proxies/:name — switch selected proxy in a group
+  fastify.put('/mihomo/proxies/:name', async (req, reply) => {
+    try {
+      const { name } = req.params as { name: string };
+      const body = req.body as { name: string };
+      const { apiUrl, secret } = getMihomoConfig();
+      await axios.put(
+        `${apiUrl}/proxies/${encodeURIComponent(name)}`,
+        { name: body.name },
+        { headers: getHeaders(secret), timeout: 5000 }
+      );
+      return { ok: true };
+    } catch {
+      reply.code(503).send({ error: 'Mihomo not reachable' });
+    }
+  });
+
   // PUT /api/mihomo/mode — switch outbound mode
   fastify.put('/mihomo/mode', async (req, reply) => {
     try {
@@ -220,8 +237,9 @@ export const mihomoRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  // POST /api/mihomo/providers/:name/update — trigger provider update in Mihomo
-  fastify.post('/mihomo/providers/:name/update', async (req, reply) => {
+  // POST|PUT /api/mihomo/providers/:name/update — trigger provider update in Mihomo
+  // (frontend uses PUT; both methods registered for compatibility)
+  async function updateProvider(req: import('fastify').FastifyRequest, reply: import('fastify').FastifyReply) {
     try {
       const { name } = req.params as { name: string };
       const { apiUrl, secret } = getMihomoConfig();
@@ -234,7 +252,9 @@ export const mihomoRoutes: FastifyPluginAsync = async (fastify) => {
     } catch {
       reply.code(503).send({ error: 'Mihomo not reachable or provider not found' });
     }
-  });
+  }
+  fastify.post('/mihomo/providers/:name/update', updateProvider);
+  fastify.put('/mihomo/providers/:name/update', updateProvider);
 
   // POST /api/mihomo/geo/update — update GEO databases
   fastify.post('/mihomo/geo/update', async (_req, reply) => {
