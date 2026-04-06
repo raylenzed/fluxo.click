@@ -264,7 +264,7 @@ function SSFields({ iv = {} }: { iv?: IV }) {
   const pT = t.proxyNode;
   const [cipher, setCipher] = useState(iv.cipher && SS_CIPHERS.includes(iv.cipher) ? iv.cipher : SS_CIPHERS[0]);
   const [password, setPassword] = useState(iv.password ?? "");
-  const [plugin, setPlugin] = useState("");
+  const [plugin, setPlugin] = useState("__none__");
   const [pluginOpts, setPluginOpts] = useState("");
   return (
     <>
@@ -279,13 +279,13 @@ function SSFields({ iv = {} }: { iv?: IV }) {
         <Select value={plugin} onValueChange={setPlugin}>
           <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="">None</SelectItem>
+            <SelectItem value="__none__">None</SelectItem>
             <SelectItem value="obfs">obfs</SelectItem>
             <SelectItem value="v2ray-plugin">v2ray-plugin</SelectItem>
           </SelectContent>
         </Select>
       </Field>
-      {plugin && <Field label={pT.pluginOptions}><Input value={pluginOpts} onChange={(e) => setPluginOpts(e.target.value)} placeholder='e.g. obfs=http;obfs-host=bing.com' className="font-mono text-xs" /></Field>}
+      {plugin !== "__none__" && <Field label={pT.pluginOptions}><Input value={pluginOpts} onChange={(e) => setPluginOpts(e.target.value)} placeholder='e.g. obfs=http;obfs-host=bing.com' className="font-mono text-xs" /></Field>}
     </>
   );
 }
@@ -341,7 +341,7 @@ function VLESSFields({ iv = {} }: { iv?: IV }) {
   const { t } = useLocale();
   const pT = t.proxyNode;
   const [uuid, setUuid] = useState(iv.uuid ?? "");
-  const [flow, setFlow] = useState(iv.flow ?? "");
+  const [flow, setFlow] = useState(iv.flow || "__none__");
   const [network, setNetwork] = useState(iv.network && NETWORKS.includes(iv.network) ? iv.network : "tcp");
   const [tls, setTls] = useState(iv.tls === "true");
   return (
@@ -352,7 +352,7 @@ function VLESSFields({ iv = {} }: { iv?: IV }) {
           <Select value={flow} onValueChange={setFlow}>
             <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="">None</SelectItem>
+              <SelectItem value="__none__">None</SelectItem>
               <SelectItem value="xtls-rprx-vision">xtls-rprx-vision</SelectItem>
             </SelectContent>
           </Select>
@@ -467,7 +467,7 @@ function Hysteria2Fields({ iv = {} }: { iv?: IV }) {
   const { t } = useLocale();
   const pT = t.proxyNode;
   const [password, setPassword] = useState(iv.password ?? "");
-  const [obfs, setObfs] = useState(iv.obfs ?? "");
+  const [obfs, setObfs] = useState(iv.obfs || "__none__");
   const [obfsPassword, setObfsPassword] = useState(iv.obfsPassword ?? "");
   const [up, setUp] = useState(iv.up ?? "");
   const [down, setDown] = useState(iv.down ?? "");
@@ -483,7 +483,7 @@ function Hysteria2Fields({ iv = {} }: { iv?: IV }) {
           <Select value={obfs} onValueChange={setObfs}>
             <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="">None</SelectItem>
+              <SelectItem value="__none__">None</SelectItem>
               <SelectItem value="salamander">salamander</SelectItem>
             </SelectContent>
           </Select>
