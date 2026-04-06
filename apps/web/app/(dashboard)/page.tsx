@@ -1,5 +1,5 @@
 "use client";
-import { ArrowDown, ArrowUp, Activity, Cpu, Globe, Zap, Server, Clock, MoreHorizontal } from "lucide-react";
+import { ArrowDown, ArrowUp, Activity, Cpu, Zap, Server, Clock, MoreHorizontal } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,43 @@ import { useRealtimeTraffic } from "@/lib/hooks/use-traffic";
 import { useRealtimeConnections } from "@/lib/hooks/use-connections";
 import { useMihomoStatus } from "@/lib/hooks";
 import { useLocale } from "@/lib/i18n/context";
+import { useQuery } from "@tanstack/react-query";
+
+async function ft(url: string, ms = 5000) {
+  const ctrl = new AbortController();
+  const id = setTimeout(() => ctrl.abort(), ms);
+  try { const r = await fetch(url, { signal: ctrl.signal }); return r.ok ? r.json() : null; }
+  catch { return null; } finally { clearTimeout(id); }
+}
+
+function useDashboardInfo() {
+  return useQuery({
+    queryKey: ["dashboard", "info"],
+    queryFn: async () => {
+      const [memRes, uptimeRes, settingsRes] = await Promise.all([
+        ft(`/api/mihomo/memory`, 4000),
+        ft(`/api/mihomo/uptime`, 3000),
+        ft(`/api/settings`, 5000),
+      ]);
+      const settings = settingsRes ?? {};
+      const tunEnabled = settings['tun.enable'] === true || settings['tun.enable'] === 'true';
+      return {
+        memory: (memRes?.inuse as number) ?? null,
+        uptime: (uptimeRes?.uptime as number | null) ?? null,
+        tunEnabled,
+      };
+    },
+    refetchInterval: 15_000,
+    retry: false,
+  });
+}
+
+function fmtUptime(s: number): string {
+  if (s < 60) return `${s}s`;
+  if (s < 3600) return `${Math.floor(s / 60)}m`;
+  const h = Math.floor(s / 3600); const m = Math.floor((s % 3600) / 60);
+  return h < 24 ? `${h}h ${m}m` : `${Math.floor(h / 24)}d ${h % 24}h`;
+}
 
 const policyColors: Record<string, string> = {
   DIRECT: "bg-[var(--surface-2)] text-[var(--muted)] border border-[var(--border)]",
@@ -112,6 +149,7 @@ export default function DashboardPage() {
   const { points, current } = useRealtimeTraffic(60);
   const connState = useRealtimeConnections();
   const { data: statusData } = useMihomoStatus();
+  const { data: dashInfo } = useDashboardInfo();
   const { t } = useLocale();
 
   const isRunning = statusData?.running ?? false;
@@ -175,15 +213,23 @@ export default function DashboardPage() {
               <p className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-3">{t.dashboard.networkMode}</p>
               <div className="space-y-2.5">
                 {[
-                  { label: t.dashboard.systemProxy, value: t.status.on, active: true },
-                  { label: t.dashboard.enhancedMode, value: t.status.on, active: true },
-                  { label: t.dashboard.gatewayMode, value: t.status.off, active: false },
+                  { label: t.dashboard.enhancedMode, active: dashInfo?.tunEnabled ?? false },
                 ].map((item) => (
                   <div key={item.label} className="flex items-center justify-between">
                     <span className="text-sm text-[var(--muted)]">{item.label}</span>
-                    <Badge variant={item.active ? "success" : "secondary"}>{item.value}</Badge>
+                    <Badge variant={item.active ? "success" : "secondary"}>
+                      {item.active ? t.status.on : t.status.off}
+                    </Badge>
                   </div>
                 ))}
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-[var(--muted)]">{t.dashboard.systemProxy}</span>
+                  <Badge variant="secondary">{t.status.off}</Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-[var(--muted)]">{t.dashboard.gatewayMode}</span>
+                  <Badge variant="secondary">{t.status.off}</Badge>
+                </div>
               </div>
             </Card>
 
@@ -198,19 +244,18 @@ export default function DashboardPage() {
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Globe className="h-3.5 w-3.5 text-[var(--muted-foreground)]" />
-                  <span className="text-xs text-[var(--muted)] flex-1">{t.dashboard.exitIP}</span>
-                  <span className="text-xs font-medium text-[var(--foreground)]">—</span>
-                </div>
-                <div className="flex items-center gap-2">
                   <Clock className="h-3.5 w-3.5 text-[var(--muted-foreground)]" />
                   <span className="text-xs text-[var(--muted)] flex-1">{t.dashboard.uptime}</span>
-                  <span className="text-xs font-medium text-[var(--foreground)]">—</span>
+                  <span className="text-xs font-medium text-[var(--foreground)]">
+                    {dashInfo?.uptime != null ? fmtUptime(dashInfo.uptime) : '—'}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Cpu className="h-3.5 w-3.5 text-[var(--muted-foreground)]" />
                   <span className="text-xs text-[var(--muted)] flex-1">{t.dashboard.memory}</span>
-                  <span className="text-xs font-medium text-[var(--foreground)]">—</span>
+                  <span className="text-xs font-medium text-[var(--foreground)]">
+                    {dashInfo?.memory != null ? formatBytes(dashInfo.memory) : '—'}
+                  </span>
                 </div>
               </div>
             </Card>

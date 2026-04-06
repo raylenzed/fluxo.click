@@ -10,38 +10,55 @@ import { formatBytes, cn } from "@/lib/utils";
 import { useLocale } from "@/lib/i18n/context";
 
 
+async function ft(url: string, ms = 5000) {
+  const ctrl = new AbortController();
+  const id = setTimeout(() => ctrl.abort(), ms);
+  try { const r = await fetch(url, { signal: ctrl.signal }); return r.ok ? r.json() : null; }
+  catch { return null; } finally { clearTimeout(id); }
+}
+
 function useSystemStatus() {
   return useQuery({
     queryKey: ["system", "status"],
     queryFn: async () => {
-      const [statusRes, memRes, connRes] = await Promise.all([
-        fetch(`/api/mihomo/status`).then(r => r.ok ? r.json() : { running: false, version: null }),
-        fetch(`/api/mihomo/memory`).then(r => r.ok ? r.json() : {}) as Promise<Record<string, number>>,
-        fetch(`/api/mihomo/connections`).then(r => r.ok ? r.json() : { connections: [] }),
+      const [statusRes, memRes, connRes, uptimeRes] = await Promise.all([
+        ft(`/api/mihomo/status`, 5000),
+        ft(`/api/mihomo/memory`, 4000),
+        ft(`/api/mihomo/connections`, 5000),
+        ft(`/api/mihomo/uptime`, 3000),
       ]);
       return {
-        running: Boolean(statusRes.running),
-        version: statusRes.version as string | null,
-        memory: (memRes.inuse as number) ?? null,
-        connections: ((connRes.connections as unknown[]) ?? []).length,
+        running: Boolean(statusRes?.running),
+        version: (statusRes?.version as string | null) ?? null,
+        memory: (memRes?.inuse as number) ?? null,
+        connections: ((connRes?.connections as unknown[]) ?? []).length,
+        uptime: (uptimeRes?.uptime as number | null) ?? null,
       };
     },
-    refetchInterval: 5_000,
+    refetchInterval: 10_000,
     retry: false,
   });
 }
 
+function fmtUptime(s: number): string {
+  if (s < 60) return `${s}s`;
+  if (s < 3600) return `${Math.floor(s / 60)}m ${s % 60}s`;
+  const h = Math.floor(s / 3600); const m = Math.floor((s % 3600) / 60);
+  return h < 24 ? `${h}h ${m}m` : `${Math.floor(h / 24)}d ${h % 24}h`;
+}
+
 function ServiceCard({
-  label, running, version, memory, connections, onRestart, restarting, t,
+  label, running, version, memory, connections, uptime, onRestart, restarting, t,
 }: {
   label: string;
   running: boolean;
   version?: string | null;
   memory?: number | null;
   connections?: number;
+  uptime?: number | null;
   onRestart?: () => void;
   restarting?: boolean;
-  t: { version: string; memory: string; connections: string; openConnections: string; restart: string; running: string; stopped: string };
+  t: { version: string; memory: string; connections: string; openConnections: string; restart: string; running: string; stopped: string; uptime?: string };
 }) {
   return (
     <Card className="p-5">
@@ -90,9 +107,15 @@ function ServiceCard({
           </div>
         )}
         {connections != null && (
-          <div className="rounded-[10px] bg-[var(--surface-2)] px-3 py-2 col-span-2">
+          <div className="rounded-[10px] bg-[var(--surface-2)] px-3 py-2">
             <p className="text-[10px] text-[var(--muted)] font-medium">{t.connections}</p>
             <p className="text-sm font-semibold text-[var(--foreground)] mt-0.5">{connections} {t.openConnections}</p>
+          </div>
+        )}
+        {uptime != null && t.uptime && (
+          <div className="rounded-[10px] bg-[var(--surface-2)] px-3 py-2">
+            <p className="text-[10px] text-[var(--muted)] font-medium">{t.uptime}</p>
+            <p className="text-sm font-semibold text-[var(--foreground)] mt-0.5">{fmtUptime(uptime)}</p>
           </div>
         )}
       </div>
@@ -132,6 +155,7 @@ export default function SystemPage() {
               version={data?.version}
               memory={data?.memory}
               connections={data?.connections}
+              uptime={data?.uptime}
               onRestart={() => restartMihomo.mutate()}
               restarting={restartMihomo.isPending}
               t={sysT}

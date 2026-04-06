@@ -1,11 +1,39 @@
 "use client";
-import { Moon, Sun, Bell, RotateCcw } from "lucide-react";
+import { Moon, Sun, Bell } from "lucide-react";
 import { useTheme } from "next-themes";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/lib/i18n/context";
+
+function useTunState() {
+  const qc = useQueryClient();
+  const { data: tunEnabled = false } = useQuery({
+    queryKey: ["tun-state"],
+    queryFn: async () => {
+      const r = await fetch(`/api/settings`);
+      if (!r.ok) return false;
+      const d = await r.json();
+      return d['tun.enable'] === true || d['tun.enable'] === 'true';
+    },
+    staleTime: 30_000,
+  });
+  const toggle = useMutation({
+    mutationFn: async (enable: boolean) => {
+      await fetch(`/api/mihomo/tun`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enable }),
+      });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["tun-state"] });
+      qc.invalidateQueries({ queryKey: ["dashboard", "info"] });
+    },
+  });
+  return { tunEnabled, toggle: toggle.mutate };
+}
 
 interface TopbarProps {
   title: string;
@@ -45,6 +73,7 @@ function ModeSegment({
 export function Topbar({ title, description, children }: TopbarProps) {
   const { theme, setTheme } = useTheme();
   const { t } = useLocale();
+  const { tunEnabled, toggle } = useTunState();
 
   return (
     <header className="sticky top-0 z-10 flex h-14 items-center justify-between gap-4 bg-[var(--background)]/80 backdrop-blur-md px-6 border-b border-[var(--border)]">
@@ -60,15 +89,15 @@ export function Topbar({ title, description, children }: TopbarProps) {
       <div className="flex items-center gap-2 shrink-0">
         {children}
 
-        {/* System proxy + TUN toggles */}
-        <div className="hidden md:flex items-center gap-3 pl-2 border-l border-[var(--border)]">
-          <label className="flex items-center gap-1.5 cursor-pointer">
-            <span className="text-xs text-[var(--muted)] font-medium">{t.topbar.systemProxy}</span>
-            <Switch className="scale-90" />
-          </label>
-          <label className="flex items-center gap-1.5 cursor-pointer">
+        {/* TUN toggle — system proxy not applicable for server deployments */}
+        <div className="hidden md:flex items-center gap-2 pl-2 border-l border-[var(--border)]">
+          <label className="flex items-center gap-1.5 cursor-pointer select-none">
             <span className="text-xs text-[var(--muted)] font-medium">{t.topbar.enhanced}</span>
-            <Switch className="scale-90" />
+            <Switch
+              className="scale-90"
+              checked={tunEnabled}
+              onCheckedChange={(v) => toggle(v)}
+            />
           </label>
         </div>
 

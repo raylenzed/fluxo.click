@@ -1,5 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify';
 import path from 'path';
+import { execSync } from 'child_process';
 import axios from 'axios';
 import { getDb } from '../../database/db';
 import {
@@ -115,14 +116,49 @@ export const mihomoRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  // GET /api/mihomo/memory
+  // GET /api/mihomo/memory — Mihomo /memory is SSE; we read first chunk only
   fastify.get('/mihomo/memory', async (_req, reply) => {
     try {
       const { apiUrl, secret } = getMihomoConfig();
-      const res = await axios.get(`${apiUrl}/memory`, { headers: getHeaders(secret), timeout: 5000 });
-      return res.data;
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 3000);
+      const res = await axios.get(`${apiUrl}/memory`, {
+        headers: getHeaders(secret),
+        responseType: 'stream',
+        timeout: 4000,
+        signal: controller.signal,
+      });
+      return new Promise<void>((resolve) => {
+        let buf = '';
+        res.data.on('data', (chunk: Buffer) => {
+          buf += chunk.toString();
+          // SSE lines look like: data: {"inuse":12345}
+          const match = buf.match(/data:\s*(\{.*?\})/);
+          if (match) {
+            clearTimeout(timer);
+            controller.abort();
+            try { reply.send(JSON.parse(match[1])); } catch { reply.send({ inuse: 0 }); }
+            resolve();
+          }
+        });
+        res.data.on('error', () => { clearTimeout(timer); reply.code(503).send({ error: 'stream error' }); resolve(); });
+        res.data.on('end', () => { clearTimeout(timer); if (!reply.sent) reply.send({ inuse: 0 }); resolve(); });
+      });
     } catch {
       reply.code(503).send({ error: 'Mihomo not reachable' });
+    }
+  });
+
+  // GET /api/mihomo/uptime — get mihomo service uptime via systemd
+  fastify.get('/mihomo/uptime', async (_req, reply) => {
+    try {
+      const out = execSync("systemctl show mihomo --property=ActiveEnterTimestamp --value 2>/dev/null", { timeout: 2000 }).toString().trim();
+      if (!out || out === 'n/a') return { uptime: null };
+      const since = new Date(out).getTime();
+      const seconds = Math.floor((Date.now() - since) / 1000);
+      return { uptime: seconds };
+    } catch {
+      return { uptime: null };
     }
   });
 
