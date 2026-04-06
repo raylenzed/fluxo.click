@@ -68,7 +68,9 @@ require_cmd() {
 confirm() {
   local prompt="$1"
   echo -en "${YELLOW}  ?${NC}  ${prompt} [y/N] "
-  read -r answer
+  local answer
+  # Read from /dev/tty so it works even when script is piped (curl | bash)
+  read -r answer < /dev/tty
   [[ "$answer" =~ ^[Yy]$ ]]
 }
 
@@ -93,15 +95,20 @@ ask_proxy() {
   echo -e "  ${BOLD}GitHub 下载代理${NC}（国内服务器推荐，留空跳过）"
   echo -e "  ${CYAN}例如: https://gh-proxy.com/${NC}"
   echo -en "  代理 URL: "
-  read -r _proxy_input
 
-  if [[ -n "$_proxy_input" ]]; then
-    # Ensure trailing slash
-    [[ "$_proxy_input" != */ ]] && _proxy_input="${_proxy_input}/"
-    GH_PROXY="$_proxy_input"
-    log_info "GitHub proxy set: ${GH_PROXY}"
+  local _proxy_input
+  # Read from /dev/tty so it works even when script is piped (curl | bash)
+  if read -r _proxy_input < /dev/tty 2>/dev/null; then
+    if [[ -n "$_proxy_input" ]]; then
+      [[ "$_proxy_input" != */ ]] && _proxy_input="${_proxy_input}/"
+      GH_PROXY="$_proxy_input"
+      log_info "GitHub proxy set: ${GH_PROXY}"
+    else
+      log_detail "No proxy — downloading directly from github.com"
+    fi
   else
-    log_detail "No proxy — downloading directly from github.com"
+    log_detail "No TTY available — downloading directly from github.com"
+    log_detail "Tip: set via env:  GH_PROXY=https://gh-proxy.com/ ... | sudo bash"
   fi
   echo ""
 }
@@ -598,8 +605,8 @@ case "${1:-install}" in
     echo "  # With proxy set via env (no prompt)"
     echo "  GH_PROXY=https://gh-proxy.com/ sudo bash install.sh"
     echo ""
-    echo "  # One-liner with proxy"
-    echo "  GH_PROXY=https://gh-proxy.com/ curl -fsSL fluxo.click/install.sh | sudo bash"
+    echo "  # One-liner with proxy (pass GH_PROXY to sudo, not curl)"
+    echo "  curl -fsSL fluxo.click/install.sh | sudo GH_PROXY=https://gh-proxy.com/ bash"
     echo ""
     ;;
   *)
