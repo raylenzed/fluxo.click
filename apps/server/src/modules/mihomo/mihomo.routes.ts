@@ -103,17 +103,6 @@ export const mihomoRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  fastify.post('/config/apply', async (_req, reply) => {
-    try {
-      const configPath = process.env.CONFIG_PATH || path.join(process.cwd(), 'data', 'config.yaml');
-      await reloadConfig(configPath);
-      reply.code(200).send({ ok: true });
-    } catch (err) {
-      fastify.log.error(err);
-      reply.code(500).send({ error: 'Failed to apply config' });
-    }
-  });
-
   // GET /api/mihomo/proxies — get all proxies from Mihomo (for latency testing)
   fastify.get('/mihomo/proxies', async (_req, reply) => {
     try {
