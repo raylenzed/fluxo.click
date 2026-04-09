@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server';
 
-// Proxy all /api/* requests to the Fastify backend (server-side, so localhost resolves correctly)
 const BACKEND = process.env.BACKEND_URL ?? 'http://localhost:8090';
 
 async function proxy(req: NextRequest, params: Promise<{ path: string[] }>) {
@@ -8,20 +7,27 @@ async function proxy(req: NextRequest, params: Promise<{ path: string[] }>) {
   const url = `${BACKEND}/api/${path.join('/')}${req.nextUrl.search}`;
 
   const rawBody = req.method !== 'GET' && req.method !== 'HEAD' ? await req.text() : undefined;
-  // Don't forward empty body — Fastify rejects empty string with Content-Type: application/json
   const body = rawBody || undefined;
 
-  const res = await fetch(url, {
-    method: req.method,
-    headers: body ? { 'content-type': 'application/json' } : {},
-    body,
-  });
+  // Forward auth-relevant headers to Fastify
+  const headers: Record<string, string> = {};
+  if (body) headers['content-type'] = 'application/json';
+  const cookie = req.headers.get('cookie');
+  if (cookie) headers['cookie'] = cookie;
+  const authorization = req.headers.get('authorization');
+  if (authorization) headers['authorization'] = authorization;
 
+  const res = await fetch(url, { method: req.method, headers, body });
   const text = await res.text();
-  return new NextResponse(text, {
-    status: res.status,
-    headers: { 'content-type': res.headers.get('content-type') ?? 'application/json' },
-  });
+
+  // Forward Set-Cookie back to the browser
+  const responseHeaders: Record<string, string> = {
+    'content-type': res.headers.get('content-type') ?? 'application/json',
+  };
+  const setCookie = res.headers.get('set-cookie');
+  if (setCookie) responseHeaders['set-cookie'] = setCookie;
+
+  return new NextResponse(text, { status: res.status, headers: responseHeaders });
 }
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
