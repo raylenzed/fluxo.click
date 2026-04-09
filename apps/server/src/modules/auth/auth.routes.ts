@@ -5,6 +5,7 @@ import {
   setPassword,
   verifyPassword,
   signToken,
+  verifyToken,
   COOKIE_NAME,
 } from './auth.service';
 
@@ -19,7 +20,6 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
   // GET /api/auth/me — returns auth state (used by frontend to check session)
   fastify.get('/auth/me', async (req, reply) => {
     const token = (req.cookies as Record<string, string>)[COOKIE_NAME];
-    const { verifyToken } = await import('./auth.service');
     if (token && verifyToken(token)) {
       return reply.send({ authenticated: true, setupRequired: false });
     }
