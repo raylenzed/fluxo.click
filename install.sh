@@ -471,6 +471,7 @@ WorkingDirectory=${web_standalone}
 Environment=NODE_ENV=production
 Environment=PORT=${WEB_PORT}
 Environment=HOSTNAME=0.0.0.0
+Environment=BACKEND_URL=http://127.0.0.1:${SERVER_PORT}
 ExecStart=${node_bin} ${web_standalone}/server.js
 Restart=on-failure
 RestartSec=5s
