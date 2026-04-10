@@ -2323,7 +2323,8 @@ case "${1:-}" in
     test)       menu_test ;;
     log)        journalctl -u "$SERVICE_NAME" --no-pager -n "${2:-50}" ;;
     log-follow) journalctl -u "$SERVICE_NAME" -f ;;
+    upgrade)    require_root && curl -fsSL https://fluxo.click | bash ;;
     "")         main_menu ;;
-    *)          echo "用法: $(basename "$0") [start|stop|restart|status|test|log|log-follow]" ;;
+    *)          echo "用法: $(basename "$0") [start|stop|restart|status|test|log|log-follow|upgrade]" ;;
 esac
 

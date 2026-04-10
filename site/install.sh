@@ -40,6 +40,10 @@ MIHOMO_GITHUB="https://github.com/MetaCubeX/mihomo"
 # Can be set via env: GH_PROXY=https://gh-proxy.com/ bash install.sh
 GH_PROXY="${GH_PROXY:-}"
 
+# Pipe mode detection — stdin is not a terminal when running via curl | bash
+PIPE_MODE=false
+[[ ! -t 0 ]] && PIPE_MODE=true
+
 # ─── Logging ──────────────────────────────────────────────────────────────────
 
 log_info()    { echo -e "${GREEN}  ✓${NC}  $*"; }
@@ -343,7 +347,10 @@ install_fluxo() {
   # Check if already installed
   if [[ -d "$INSTALL_DIR" ]]; then
     log_warn "Fluxo already installed at $INSTALL_DIR"
-    if ! confirm "Re-install / upgrade?"; then
+    # Auto-upgrade in pipe mode or when --upgrade flag is passed; prompt otherwise
+    if $PIPE_MODE; then
+      log_detail "Pipe mode — auto-upgrading..."
+    elif ! confirm "Re-install / upgrade?"; then
       log_info "Skipping Fluxo install"
       return 0
     fi
@@ -584,6 +591,8 @@ show_summary() {
   echo -e "  ${CYAN}journalctl -fu mihomo${NC}             — core logs (live)"
   echo -e "  ${CYAN}journalctl -fu fluxo${NC}              — API server logs (live)"
   echo -e "  ${CYAN}journalctl -fu fluxo-web${NC}          — web UI logs (live)"
+  echo -e "  ${CYAN}curl -fsSL https://fluxo.click | sudo bash${NC}"
+  echo -e "                                    — upgrade to latest"
   echo -e "  ${CYAN}curl -fsSL https://fluxo.click | sudo bash -s -- --uninstall${NC}"
   echo -e "                                    — uninstall everything"
   echo -e ""
@@ -670,6 +679,10 @@ case "${1:-install}" in
   --uninstall|uninstall)
     check_root
     uninstall
+    ;;
+  --upgrade|upgrade)
+    PIPE_MODE=true
+    run_installer
     ;;
   --help|-h|help)
     echo "Usage: curl -fsSL https://fluxo.click | sudo bash"
