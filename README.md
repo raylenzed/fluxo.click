@@ -74,10 +74,10 @@ pnpm dev  # Web: http://localhost:38080 | API: http://localhost:8090
 curl -fsSL https://fluxo.click | sudo bash
 ```
 
-国内服务器可指定 GitHub 下载代理：
+国内服务器使用 `/cn` 路径，自动内置 GitHub 代理 + npm 国内源：
 
 ```bash
-curl -fsSL https://fluxo.click | sudo GH_PROXY=https://gh-proxy.com/ bash
+curl -fsSL https://fluxo.click/cn | bash
 ```
 
 安装后自动创建三个 systemd 服务：

@@ -105,8 +105,8 @@ ask_proxy() {
   # Pipe mode (curl | bash): stdin is not a terminal, can't prompt interactively
   if [[ ! -t 0 ]]; then
     log_detail "Running via pipe — skipping proxy prompt"
-    log_detail "To use a proxy, run:"
-    log_detail "  curl -fsSL https://fluxo.click | sudo GH_PROXY=https://gh-proxy.com/ bash"
+    log_detail "For CN servers use the short command:"
+    log_detail "  curl -fsSL https://fluxo.click/cn | bash"
     echo ""
     return 0
   fi
@@ -606,8 +606,10 @@ show_summary() {
   echo -e "  ${CYAN}journalctl -fu mihomo${NC}             — core logs (live)"
   echo -e "  ${CYAN}journalctl -fu fluxo${NC}              — API server logs (live)"
   echo -e "  ${CYAN}journalctl -fu fluxo-web${NC}          — web UI logs (live)"
-  echo -e "  ${CYAN}curl -fsSL https://fluxo.click | sudo bash${NC}"
+  echo -e "  ${CYAN}curl -fsSL https://fluxo.click | bash${NC}"
   echo -e "                                    — upgrade to latest"
+  echo -e "  ${CYAN}curl -fsSL https://fluxo.click/cn | bash${NC}"
+  echo -e "                                    — upgrade (CN servers, auto proxy)"
   echo -e "  ${CYAN}curl -fsSL https://fluxo.click | sudo bash -s -- --uninstall${NC}"
   echo -e "                                    — uninstall everything"
   echo -e ""
