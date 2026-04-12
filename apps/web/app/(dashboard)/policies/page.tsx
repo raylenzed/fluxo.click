@@ -277,6 +277,8 @@ export default function PoliciesPage() {
           toast.error(`${name}: ${t.policies.switchFailed}`);
         } else if (data.errorType === "timeout") {
           toast.error(`${name}: ${t.proxyNode.connTimeout}`);
+        } else if (data.errorType === "unreachable") {
+          toast.error(`${name}: ${t.policies.nodeUnreachable}`);
         } else if (data.error) {
           toast.error(`${name}: ${data.error}`);
         } else {
