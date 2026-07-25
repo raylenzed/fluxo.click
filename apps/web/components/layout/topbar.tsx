@@ -1,5 +1,5 @@
 "use client";
-import { Moon, Sun, Bell, Search, Zap, LogOut } from "lucide-react";
+import { Moon, Sun, Bell, Zap, LogOut } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Switch } from "@/components/ui/switch";
@@ -14,6 +14,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { GlobalSearch } from "@/components/layout/global-search";
 
 type TunStatus = {
   desired: boolean;
@@ -147,15 +148,7 @@ export function Topbar({ title, description, children }: TopbarProps) {
 
       {/* Search bar — center, flex-1 */}
       <div className="mx-2 hidden flex-1 sm:block">
-        <div className="mx-auto flex h-11 max-w-[560px] items-center gap-3 rounded-full border border-[var(--border)] bg-[var(--surface)] px-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]">
-          <Search className="h-4 w-4 shrink-0 text-[var(--muted-foreground)]" />
-          <input
-            type="text"
-            placeholder={t.topbar.searchPlaceholder}
-            className="flex-1 bg-transparent text-[15px] font-medium text-[var(--foreground)] outline-none placeholder:text-[var(--muted-foreground)]"
-            readOnly
-          />
-        </div>
+        <GlobalSearch />
       </div>
 
       {/* Right actions */}

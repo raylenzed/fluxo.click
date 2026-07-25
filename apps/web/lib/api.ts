@@ -82,6 +82,19 @@ export interface RuleRow {
   note: string;
 }
 
+export interface RuleProviderRow {
+  id: string;
+  name: string;
+  type: string;
+  behavior: string;
+  url: string | null;
+  path: string | null;
+  interval: number;
+  policy: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface ProfileRow {
   id: string;
   name: string;
@@ -153,6 +166,17 @@ export const rulesApi = {
     request<{ ok: boolean }>(`/api/rules/${id}`, { method: 'DELETE' }),
   reorder: (ids: string[]) =>
     request<{ ok: boolean }>('/api/rules/reorder', { method: 'PUT', body: JSON.stringify({ ids }) }),
+};
+
+// --- Rule providers ---
+export const ruleProvidersApi = {
+  list: () => request<RuleProviderRow[]>('/api/rule-providers'),
+  create: (data: Omit<RuleProviderRow, 'id' | 'created_at' | 'updated_at'>) =>
+    request<{ id: string }>('/api/rule-providers', { method: 'POST', body: JSON.stringify(data) }),
+  update: (id: string, data: Omit<RuleProviderRow, 'id' | 'created_at' | 'updated_at'>) =>
+    request<{ ok: boolean }>(`/api/rule-providers/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  delete: (id: string) =>
+    request<{ ok: boolean }>(`/api/rule-providers/${id}`, { method: 'DELETE' }),
 };
 
 // --- Settings ---

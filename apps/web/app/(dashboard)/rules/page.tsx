@@ -46,6 +46,7 @@ import {
   useDeleteRule,
   useReorderRules,
   useGroups,
+  useRuleProviders,
 } from "@/lib/hooks";
 import { rulesApi, type RuleRow } from "@/lib/api";
 
@@ -55,7 +56,7 @@ type RuleType =
   | "IP-CIDR" | "IP-CIDR6" | "GEOIP" | "GEOSITE" | "IP-ASN"
   | "PROCESS-NAME" | "USER-AGENT" | "URL-REGEX"
   | "IN-PORT" | "DEST-PORT" | "SRC-PORT" | "SRC-IP"
-  | "DEVICE-NAME" | "PROTOCOL" | "SUBNET" | "HOSTNAME-TYPE" | "FINAL";
+  | "DEVICE-NAME" | "PROTOCOL" | "SUBNET" | "HOSTNAME-TYPE" | "RULE-SET" | "FINAL";
 
 // UI rule type (adds matches for display)
 interface Rule {
@@ -76,7 +77,7 @@ const RULE_TYPES: RuleType[] = [
   "IP-CIDR", "IP-CIDR6", "GEOIP", "GEOSITE", "IP-ASN",
   "PROCESS-NAME", "USER-AGENT", "URL-REGEX",
   "IN-PORT", "DEST-PORT", "SRC-PORT", "SRC-IP",
-  "DEVICE-NAME", "PROTOCOL", "SUBNET", "HOSTNAME-TYPE", "FINAL",
+  "DEVICE-NAME", "PROTOCOL", "SUBNET", "HOSTNAME-TYPE", "RULE-SET", "FINAL",
 ];
 
 const BUILTIN_RULE_SETS = [
@@ -262,12 +263,14 @@ function RuleDialog({
   onClose,
   editingRule,
   policies,
+  ruleProviders,
   onSave,
 }: {
   open: boolean;
   onClose: () => void;
   editingRule?: Rule;
   policies: string[];
+  ruleProviders: string[];
   onSave: (rule: RuleFormData, notify: boolean, extendedMatch: boolean) => void;
 }) {
   const { t } = useLocale();
@@ -299,7 +302,14 @@ function RuleDialog({
         <div className="space-y-5 px-9 py-6">
           <div className="space-y-1.5">
             <label className="text-[15px] font-bold text-[var(--muted)]">{rT.ruleType}</label>
-            <Select value={type} onValueChange={(v) => setType(v as RuleType)}>
+            <Select
+              value={type}
+              onValueChange={(v) => {
+                const nextType = v as RuleType;
+                if (nextType === "RULE-SET" || type === "RULE-SET") setValue("");
+                setType(nextType);
+              }}
+            >
               <SelectTrigger className="h-11 rounded-[9px] bg-white text-[15px] font-semibold"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {RULE_TYPES.map((rt) => (
@@ -312,17 +322,30 @@ function RuleDialog({
           {!isNoValue && (
             <div className="space-y-1.5">
               <label className="text-[15px] font-bold text-[var(--muted)]">{rT.value}</label>
-              <Input
-                value={value}
-                onChange={(e) => setValue(e.target.value)}
-                placeholder={
-                  type === "IP-CIDR" ? "e.g. 103.0.0.0/8"
-                  : type === "GEOIP" ? "e.g. CN"
-                  : type === "PROCESS-NAME" ? "e.g. chrome"
-                  : "e.g. api.openai.com"
-                }
-                className="h-11 bg-white font-mono text-[15px]"
-              />
+              {type === "RULE-SET" ? (
+                <Select value={value} onValueChange={setValue}>
+                  <SelectTrigger className="h-11 rounded-[9px] bg-white font-mono text-[15px]">
+                    <SelectValue placeholder={rT.newRuleSetTitle} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ruleProviders.map((provider) => (
+                      <SelectItem key={provider} value={provider}>{provider}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  value={value}
+                  onChange={(e) => setValue(e.target.value)}
+                  placeholder={
+                    type === "IP-CIDR" ? "e.g. 103.0.0.0/8"
+                    : type === "GEOIP" ? "e.g. CN"
+                    : type === "PROCESS-NAME" ? "e.g. chrome"
+                    : "e.g. api.openai.com"
+                  }
+                  className="h-11 bg-white font-mono text-[15px]"
+                />
+              )}
             </div>
           )}
 
@@ -424,6 +447,7 @@ function RuleSetDialog({
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["rule-providers"] });
+      qc.invalidateQueries({ queryKey: ["rules"] });
       toast.success(rsT.ruleSetAdded);
       onClose();
       setName(""); setUrl(""); setSourceType("builtin");
@@ -620,6 +644,7 @@ export default function RulesPage() {
 
   const rulesQuery = useRules();
   const groupsQuery = useGroups();
+  const ruleProvidersQuery = useRuleProviders();
   const createRule = useCreateRule();
   const updateRule = useUpdateRule();
   const deleteRule = useDeleteRule();
@@ -888,6 +913,7 @@ export default function RulesPage() {
         onClose={() => { setShowAddRule(false); setEditingRule(undefined); }}
         editingRule={editingRule}
         policies={policies}
+        ruleProviders={(ruleProvidersQuery.data ?? []).map((provider) => provider.name)}
         onSave={handleSaveRule}
       />
       <RuleSetDialog

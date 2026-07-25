@@ -427,12 +427,6 @@ export async function generateConfig(): Promise<string> {
 
   // Load rules
   const ruleRows = db.prepare('SELECT * FROM rules ORDER BY sort_order').all() as any[];
-  const explicitRuleSetNames = new Set(
-    ruleRows
-      .filter((row) => row.type === 'RULE-SET' && typeof row.value === 'string' && row.value.length > 0)
-      .map((row) => row.value as string)
-  );
-
   const normalRules: string[] = [];
   const finalRules: string[] = [];
   for (const row of ruleRows) {
@@ -452,11 +446,7 @@ export async function generateConfig(): Promise<string> {
     }
   }
 
-  const autoRuleProviderRules = ruleProviderRows
-    .filter((rp) => !explicitRuleSetNames.has(rp.name))
-    .map((rp) => `RULE-SET,${rp.name},${rp.policy}`);
-
-  const rules = [...normalRules, ...autoRuleProviderRules, ...finalRules];
+  const rules = [...normalRules, ...finalRules];
 
   // Load DNS config
   const dnsRow = db.prepare('SELECT * FROM dns_config WHERE id = 1').get() as any;
