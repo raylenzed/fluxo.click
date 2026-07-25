@@ -49,6 +49,7 @@ import {
   useRuleProviders,
 } from "@/lib/hooks";
 import { rulesApi, type RuleRow } from "@/lib/api";
+import { usePageSearch } from "@/lib/page-search";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type RuleType =
@@ -635,6 +636,7 @@ export default function RulesPage() {
   const { t } = useLocale();
   const rT = t.rules;
   const qc = useQueryClient();
+  const { query: pageSearch } = usePageSearch();
 
   const [search, setSearch] = useState("");
   const [groupByPolicy, setGroupByPolicy] = useState(false);
@@ -661,9 +663,10 @@ export default function RulesPage() {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
+  const effectiveSearch = pageSearch || search;
   const filtered = rawRules.filter((r) => {
-    if (!search) return true;
-    const q = search.toLowerCase();
+    if (!effectiveSearch) return true;
+    const q = effectiveSearch.toLowerCase();
     return (
       r.type.toLowerCase().includes(q) ||
       r.value.toLowerCase().includes(q) ||

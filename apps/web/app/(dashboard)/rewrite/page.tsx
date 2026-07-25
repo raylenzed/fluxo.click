@@ -11,6 +11,7 @@ import { Topbar } from "@/components/layout/topbar";
 import { useLocale } from "@/lib/i18n/context";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { usePageSearch } from "@/lib/page-search";
 
 
 interface RuleProvider {
@@ -76,6 +77,19 @@ export default function RuleProvidersPage() {
   const qc = useQueryClient();
   const { data: providers = [], isLoading } = useRuleProviders();
   const { data: groups = [] } = useGroups();
+  const { query } = usePageSearch();
+  const normalizedQuery = query.trim().toLocaleLowerCase();
+  const filteredProviders = providers.filter((provider) => {
+    if (!normalizedQuery) return true;
+    return [
+      provider.name,
+      provider.type,
+      provider.behavior,
+      provider.url,
+      provider.path,
+      provider.policy,
+    ].some((value) => String(value ?? "").toLocaleLowerCase().includes(normalizedQuery));
+  });
 
   const [showDialog, setShowDialog] = useState(false);
   const [editingProvider, setEditingProvider] = useState<RuleProvider | null>(null);
@@ -278,7 +292,7 @@ export default function RuleProvidersPage() {
               <span className="w-8" />
             </div>
             <CardContent className="pt-2 pb-2 px-2 space-y-0.5">
-              {providers.map((p) => (
+              {filteredProviders.map((p) => (
                 <div key={p.id} className="grid grid-cols-[1fr_auto_auto_auto_auto_auto] gap-4 items-center rounded-[10px] px-2 py-2.5 hover:bg-[var(--surface-2)] group">
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-[var(--foreground)] truncate">{p.name}</p>

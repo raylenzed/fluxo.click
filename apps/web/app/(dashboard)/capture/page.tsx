@@ -8,6 +8,7 @@ import { Topbar } from "@/components/layout/topbar";
 import { useLogs, type LogEntry } from "@/lib/hooks/use-logs";
 import { useLocale } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils";
+import { usePageSearch } from "@/lib/page-search";
 
 type LevelFilter = "all" | "info" | "warning" | "error";
 
@@ -41,11 +42,18 @@ export default function LogsPage() {
   const { t } = useLocale();
   const lT = t.logs;
   const { logs, paused, connected, clear, togglePause } = useLogs(500);
+  const { query } = usePageSearch();
   const [autoScroll, setAutoScroll] = useState(true);
   const [levelFilter, setLevelFilter] = useState<LevelFilter>("all");
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const filtered = logs.filter((e) => matchesFilter(e, levelFilter));
+  const normalizedQuery = query.trim().toLocaleLowerCase();
+  const filtered = logs.filter((entry) => {
+    if (!matchesFilter(entry, levelFilter)) return false;
+    if (!normalizedQuery) return true;
+    return [entry.timestamp, entry.level, entry.message]
+      .some((value) => value.toLocaleLowerCase().includes(normalizedQuery));
+  });
 
   useEffect(() => {
     if (autoScroll && scrollRef.current) {
@@ -131,7 +139,12 @@ export default function LogsPage() {
             >
               {filtered.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full gap-3">
-                  {connected ? (
+                  {logs.length > 0 && normalizedQuery ? (
+                    <>
+                      <ScrollText className="h-8 w-8 text-zinc-600" />
+                      <p className="text-sm text-zinc-600">{t.topbar.searchNoResults}</p>
+                    </>
+                  ) : connected ? (
                     <>
                       <ScrollText className="h-8 w-8 text-zinc-600" />
                       <p className="text-sm text-zinc-600">{lT.waitingForLogs}</p>

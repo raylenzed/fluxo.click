@@ -11,6 +11,7 @@ import { Topbar } from "@/components/layout/topbar";
 import { useLocale } from "@/lib/i18n/context";
 import { useDesktopMode } from "@/lib/desktop";
 import { toast } from "sonner";
+import { usePageSearch } from "@/lib/page-search";
 
 
 interface Provider {
@@ -52,6 +53,17 @@ export default function ProvidersPage() {
   const desktopMode = useDesktopMode();
   const qc = useQueryClient();
   const { data: providers = [], isLoading } = useProviders();
+  const { query } = usePageSearch();
+  const normalizedQuery = query.trim().toLocaleLowerCase();
+  const filteredProviders = providers.filter((provider) => {
+    if (!normalizedQuery) return true;
+    return [
+      provider.name,
+      provider.url,
+      provider.filter,
+      provider.health_check_url,
+    ].some((value) => String(value ?? "").toLocaleLowerCase().includes(normalizedQuery));
+  });
 
   const [showDialog, setShowDialog] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -179,8 +191,10 @@ export default function ProvidersPage() {
               {t.providers.addProvider}
             </Button>
           </div>
+        ) : filteredProviders.length === 0 ? (
+          <div className="py-16 text-center text-sm text-[var(--muted)]">{t.topbar.searchNoResults}</div>
         ) : (
-          providers.map((p) => (
+          filteredProviders.map((p) => (
             <Card key={p.id}>
               <div className="p-5 flex items-start gap-4">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-[var(--surface-2)] border border-[var(--border)] text-base font-bold text-[var(--brand-500)]">
