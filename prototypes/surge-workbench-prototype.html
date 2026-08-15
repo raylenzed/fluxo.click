@@ -1,0 +1,884 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fluxo Surge-like Workbench Prototype</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --window-bg: #f7f8fa;
+      --sidebar-bg: #eef6fd;
+      --surface: #ffffff;
+      --surface-soft: #f1f1f1;
+      --surface-card: #eeeeef;
+      --line: #d8d8da;
+      --line-strong: #c7c7ca;
+      --text: #1f2329;
+      --text-soft: #6d727b;
+      --text-faint: #a8abb1;
+      --blue: #007aff;
+      --blue-soft: #cfe8ff;
+      --cyan: #00a9ff;
+      --purple: #c800ff;
+      --green: #42d600;
+      --shadow: 0 22px 70px rgba(20, 24, 32, 0.22);
+      --soft-shadow: 0 12px 34px rgba(32, 38, 48, 0.08);
+      --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      font-family: var(--font);
+      background: #d7dee7;
+      color: var(--text);
+    }
+
+    body {
+      display: grid;
+      place-items: center;
+      padding: 28px;
+    }
+
+    .window {
+      width: min(1540px, calc(100vw - 56px));
+      height: min(940px, calc(100vh - 56px));
+      min-height: 820px;
+      display: grid;
+      grid-template-columns: 238px 1fr;
+      overflow: hidden;
+      border: 1px solid rgba(0, 0, 0, 0.2);
+      border-radius: 22px;
+      background: var(--window-bg);
+      box-shadow: var(--shadow);
+    }
+
+    .sidebar {
+      position: relative;
+      background: linear-gradient(180deg, #f3faff 0%, var(--sidebar-bg) 100%);
+      border-right: 1px solid #dce5ed;
+      padding: 18px 18px 24px;
+    }
+
+    .traffic-lights {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 56px;
+    }
+
+    .light {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.14);
+    }
+
+    .light.red { background: #ff5f57; }
+    .light.yellow { background: #ffbd2e; }
+    .light.green { background: #28c840; }
+
+    .nav-section {
+      margin-bottom: 28px;
+    }
+
+    .nav-title {
+      margin: 0 0 12px;
+      color: #8f969f;
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .nav-item {
+      height: 48px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 12px;
+      border-radius: 10px;
+      color: #2d3035;
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .nav-item + .nav-item {
+      margin-top: 8px;
+    }
+
+    .nav-item.active {
+      background: rgba(174, 184, 194, 0.22);
+    }
+
+    .nav-icon {
+      width: 22px;
+      display: inline-grid;
+      place-items: center;
+      color: #78818a;
+      font-size: 18px;
+    }
+
+    .sidebar-footer {
+      position: absolute;
+      left: 18px;
+      right: 18px;
+      bottom: 22px;
+    }
+
+    .footer-item {
+      height: 44px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 12px;
+      border-radius: 10px;
+      font-size: 17px;
+      font-weight: 700;
+      color: #2d3035;
+    }
+
+    .footer-line {
+      height: 1px;
+      margin: 12px 0;
+      background: #d7dde4;
+    }
+
+    .main {
+      position: relative;
+      overflow: auto;
+      padding: 28px 32px 40px;
+      background:
+        radial-gradient(circle at 87% 12%, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0) 26%),
+        linear-gradient(180deg, #fbfbfc 0%, #f7f8fa 100%);
+    }
+
+    .panel {
+      min-height: calc(100% - 8px);
+      padding: 36px 42px 48px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.84);
+      box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.045);
+    }
+
+    .page-title {
+      margin: 0 0 20px;
+      font-size: 42px;
+      line-height: 1;
+      letter-spacing: 0;
+      font-weight: 800;
+    }
+
+    .mode-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 32px;
+      margin-bottom: 8px;
+    }
+
+    .segmented {
+      width: 580px;
+      height: 34px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      overflow: hidden;
+      border-radius: 18px;
+      background: #dfdfe0;
+      font-size: 17px;
+      font-weight: 800;
+    }
+
+    .segment {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      color: #202326;
+    }
+
+    .segment + .segment {
+      border-left: 1px solid #c7c7c9;
+    }
+
+    .segment.active {
+      color: #ffffff;
+      background: var(--blue);
+      border-left: 0;
+      border-radius: 18px;
+    }
+
+    .hint {
+      margin: 0 0 30px;
+      color: #a6a8ac;
+      font-size: 15px;
+      font-weight: 650;
+    }
+
+    .right-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .pill-button {
+      min-height: 28px;
+      padding: 4px 12px;
+      border: 0;
+      border-radius: 14px;
+      background: #e8e8e9;
+      color: #74777c;
+      font: inherit;
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .primary-button {
+      min-height: 34px;
+      padding: 0 18px;
+      border: 0;
+      border-radius: 9px;
+      background: var(--blue);
+      color: white;
+      font: inherit;
+      font-size: 15px;
+      font-weight: 800;
+    }
+
+    .ghost-button {
+      min-height: 34px;
+      padding: 0 16px;
+      border: 0;
+      border-radius: 9px;
+      background: #e9e9ea;
+      color: #25282d;
+      font: inherit;
+      font-size: 15px;
+      font-weight: 800;
+    }
+
+    .section {
+      margin-top: 32px;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .section-title {
+      margin: 0;
+      color: var(--purple);
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    .section-title.groups {
+      color: var(--cyan);
+    }
+
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(170px, 1fr));
+      gap: 18px;
+    }
+
+    .proxy-card,
+    .group-card,
+    .add-card {
+      position: relative;
+      min-height: 96px;
+      border: 0;
+      border-radius: 9px;
+      background: var(--surface-card);
+      overflow: hidden;
+    }
+
+    .proxy-card,
+    .group-card {
+      padding: 13px 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .proxy-kind,
+    .group-kind {
+      color: #b3b5ba;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .proxy-name,
+    .group-name {
+      margin-top: 4px;
+      font-size: 17px;
+      line-height: 1.15;
+      font-weight: 850;
+      color: #25282d;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .latency {
+      color: var(--green);
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .selected-card {
+      background: var(--blue-soft);
+    }
+
+    .group-card .current {
+      color: #b4b5b8;
+      font-size: 14px;
+      font-weight: 800;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .add-card {
+      border: 1px dashed #cfd0d3;
+      background: linear-gradient(135deg, #efefef, #e7e7e8);
+      display: grid;
+      place-items: center;
+    }
+
+    .add-card span {
+      width: 26px;
+      height: 26px;
+      border-radius: 6px;
+      display: grid;
+      place-items: center;
+      background: #d2d2d4;
+      color: white;
+      font-size: 24px;
+      font-weight: 900;
+    }
+
+    .context-menu {
+      position: absolute;
+      left: 492px;
+      top: 592px;
+      width: 236px;
+      padding: 10px 0;
+      border: 1px solid rgba(0, 0, 0, 0.23);
+      border-radius: 15px;
+      background: rgba(252, 252, 253, 0.92);
+      box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
+      backdrop-filter: blur(28px);
+      z-index: 3;
+    }
+
+    .menu-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 30px;
+      padding: 0 18px;
+      color: #15181c;
+      font-size: 16px;
+      font-weight: 760;
+    }
+
+    .menu-item .delay {
+      min-width: 52px;
+      padding: 2px 6px;
+      border-radius: 5px;
+      text-align: center;
+      color: white;
+      background: #43d900;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .menu-item.checked::before {
+      content: "✓";
+      width: 18px;
+      margin-left: -4px;
+      margin-right: 4px;
+      font-weight: 900;
+    }
+
+    .menu-item:not(.checked)::before {
+      content: "";
+      width: 18px;
+      margin-left: -4px;
+      margin-right: 4px;
+    }
+
+    .menu-line {
+      height: 1px;
+      margin: 8px 14px;
+      background: #d2d2d4;
+    }
+
+    .rules-preview {
+      margin-top: 36px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: #ffffff;
+    }
+
+    .rules-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      font-size: 15px;
+    }
+
+    .rules-table th {
+      height: 32px;
+      padding: 0 12px;
+      border-bottom: 1px solid var(--line);
+      color: #85888d;
+      text-align: left;
+      font-size: 13px;
+      font-weight: 800;
+      background: #f1f1f2;
+    }
+
+    .rules-table td {
+      height: 34px;
+      padding: 0 12px;
+      border-bottom: 1px solid #ededee;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .rules-table tr:nth-child(even) td {
+      background: #f5f5f5;
+    }
+
+    .rule-type {
+      color: #69717a;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-weight: 800;
+    }
+
+    .policy-chip {
+      display: inline-flex;
+      align-items: center;
+      min-width: 72px;
+      justify-content: center;
+      padding: 2px 8px;
+      border-radius: 7px;
+      color: #111418;
+      background: #e7e7e8;
+      font-weight: 850;
+    }
+
+    .modal-backdrop {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: rgba(116, 120, 124, 0.36);
+      backdrop-filter: blur(5px);
+      pointer-events: none;
+      opacity: 0.96;
+    }
+
+    .wizard {
+      width: min(860px, 70vw);
+      min-height: 430px;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      border: 1px solid rgba(0, 0, 0, 0.24);
+      border-radius: 28px;
+      overflow: hidden;
+      background: white;
+      box-shadow: 0 34px 90px rgba(0, 0, 0, 0.32);
+    }
+
+    .wizard-head {
+      padding: 30px 38px 18px;
+      border-bottom: 1px solid #e5e5e6;
+    }
+
+    .wizard-title {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 850;
+    }
+
+    .wizard-subtitle {
+      margin: 4px 0 0;
+      color: #b2b3b7;
+      font-size: 16px;
+      font-weight: 720;
+    }
+
+    .wizard-body {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 28px;
+      padding: 24px 38px 28px;
+    }
+
+    .surge-table {
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      overflow: hidden;
+      background: white;
+    }
+
+    .surge-table-row {
+      height: 32px;
+      display: grid;
+      grid-template-columns: 44px 1fr;
+      align-items: center;
+      border-bottom: 1px solid #eeeeef;
+      font-size: 17px;
+      font-weight: 640;
+    }
+
+    .surge-table-row.head {
+      height: 30px;
+      color: #2e3136;
+      font-size: 14px;
+      font-weight: 800;
+      background: white;
+    }
+
+    .surge-table-row:nth-child(odd):not(.head) {
+      background: #f2f2f3;
+    }
+
+    .check-box {
+      width: 20px;
+      height: 20px;
+      justify-self: center;
+      border-radius: 6px;
+      background: #e2e2e3;
+    }
+
+    .check-box.on {
+      display: grid;
+      place-items: center;
+      background: var(--blue);
+      color: white;
+      font-size: 15px;
+      font-weight: 900;
+    }
+
+    .wizard-options {
+      border-left: 1px solid #dfdfe0;
+      padding-left: 28px;
+    }
+
+    .option {
+      padding: 0 0 18px;
+      margin-bottom: 18px;
+      border-bottom: 1px solid #dfdfe0;
+    }
+
+    .option-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+      font-size: 18px;
+      font-weight: 850;
+    }
+
+    .option-text {
+      color: #85888e;
+      font-size: 15px;
+      line-height: 1.45;
+      font-weight: 650;
+    }
+
+    .input {
+      height: 32px;
+      width: 100%;
+      margin-top: 8px;
+      padding: 0 12px;
+      border: 1px solid #e1e1e3;
+      border-radius: 8px;
+      color: #777b82;
+      background: #fff;
+      font-size: 15px;
+      font-weight: 650;
+    }
+
+    .wizard-foot {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 34px;
+      border-top: 1px solid #e5e5e6;
+      background: white;
+    }
+
+    .foot-right {
+      display: flex;
+      gap: 14px;
+    }
+
+    @media (max-width: 1260px) {
+      .card-grid {
+        grid-template-columns: repeat(3, minmax(170px, 1fr));
+      }
+
+      .context-menu {
+        left: auto;
+        right: 68px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="window">
+    <aside class="sidebar">
+      <div class="traffic-lights" aria-hidden="true">
+        <span class="light red"></span>
+        <span class="light yellow"></span>
+        <span class="light green"></span>
+      </div>
+
+      <nav>
+        <section class="nav-section">
+          <div class="nav-item"><span class="nav-icon">▧</span>活动</div>
+          <div class="nav-item"><span class="nav-icon">▦</span>概览</div>
+        </section>
+
+        <section class="nav-section">
+          <p class="nav-title">客户端</p>
+          <div class="nav-item"><span class="nav-icon">▣</span>进程</div>
+          <div class="nav-item"><span class="nav-icon">▱</span>设备</div>
+        </section>
+
+        <section class="nav-section">
+          <p class="nav-title">代理</p>
+          <div class="nav-item active"><span class="nav-icon">⌁</span>策略</div>
+          <div class="nav-item"><span class="nav-icon">☷</span>规则</div>
+        </section>
+
+        <section class="nav-section">
+          <p class="nav-title">HTTP</p>
+          <div class="nav-item"><span class="nav-icon">◌</span>捕获</div>
+          <div class="nav-item"><span class="nav-icon">▢</span>解密</div>
+          <div class="nav-item"><span class="nav-icon">∕</span>重写</div>
+        </section>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="footer-item"><span class="nav-icon">▭</span>更多</div>
+        <div class="footer-line"></div>
+        <div class="footer-item"><span class="nav-icon">◉</span>面板</div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <section class="panel">
+        <div class="mode-row">
+          <div>
+            <h1 class="page-title">策略</h1>
+            <div class="segmented" role="group" aria-label="代理模式">
+              <div class="segment">⌁ 直接连接</div>
+              <div class="segment">♪ 全局代理</div>
+              <div class="segment active">↝ 规则判定</div>
+            </div>
+          </div>
+          <div class="right-actions">
+            <button class="pill-button">测试全部</button>
+            <button class="ghost-button">生成预览</button>
+            <button class="primary-button">导出 YAML</button>
+          </div>
+        </div>
+        <p class="hint">根据规则系统判定处理方式。Fluxo 只负责配置，生成后导入 Mihomo。</p>
+
+        <section class="section">
+          <div class="section-head">
+            <h2 class="section-title">代理</h2>
+          </div>
+          <div class="card-grid">
+            <article class="proxy-card">
+              <div>
+                <div class="proxy-kind">VLESS</div>
+                <div class="proxy-name">🇺🇸 US OwO</div>
+              </div>
+              <div class="latency">258 ms</div>
+            </article>
+            <article class="proxy-card">
+              <div>
+                <div class="proxy-kind">VLESS</div>
+                <div class="proxy-name">🇺🇸 US DMIT</div>
+              </div>
+              <div class="latency">157 ms</div>
+            </article>
+            <article class="proxy-card">
+              <div>
+                <div class="proxy-kind">HYSTERIA2</div>
+                <div class="proxy-name">🇯🇵 JP GREEN</div>
+              </div>
+              <div class="latency">102 ms</div>
+            </article>
+            <article class="proxy-card">
+              <div>
+                <div class="proxy-kind">HYSTERIA2</div>
+                <div class="proxy-name">🇯🇵 JP RFC</div>
+              </div>
+              <div class="latency">112 ms</div>
+            </article>
+            <article class="add-card"><span>+</span></article>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-head">
+            <h2 class="section-title groups">策略组</h2>
+          </div>
+          <div class="card-grid">
+            <article class="group-card selected-card">
+              <div>
+                <div class="group-kind">手动选择策略组</div>
+                <div class="group-name">Proxy</div>
+              </div>
+              <div class="current">🇺🇸 US DMIT</div>
+            </article>
+            <article class="group-card">
+              <div>
+                <div class="group-kind">手动选择策略组</div>
+                <div class="group-name">YouTube</div>
+              </div>
+              <div class="current">🇺🇸 US OwO</div>
+            </article>
+            <article class="group-card">
+              <div>
+                <div class="group-kind">自动测试策略组</div>
+                <div class="group-name">OpenAI</div>
+              </div>
+              <div class="current">🇯🇵 JP RFC</div>
+            </article>
+            <article class="group-card">
+              <div>
+                <div class="group-kind">手动选择策略组</div>
+                <div class="group-name">Telegram</div>
+              </div>
+              <div class="current">🇺🇸 US DMIT</div>
+            </article>
+            <article class="add-card"><span>+</span></article>
+          </div>
+        </section>
+
+        <section class="rules-preview" aria-label="规则预览">
+          <table class="rules-table">
+            <thead>
+              <tr>
+                <th style="width: 58px;">ID</th>
+                <th style="width: 170px;">类型</th>
+                <th>值</th>
+                <th style="width: 170px;">策略</th>
+                <th style="width: 120px;">备注</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>1</td>
+                <td class="rule-type">GEOSITE</td>
+                <td>cn</td>
+                <td><span class="policy-chip">DIRECT</span></td>
+                <td>大陆域名</td>
+              </tr>
+              <tr>
+                <td>2</td>
+                <td class="rule-type">RULE-SET</td>
+                <td>OpenAI</td>
+                <td><span class="policy-chip">OpenAI</span></td>
+                <td>AI 服务</td>
+              </tr>
+              <tr>
+                <td>3</td>
+                <td class="rule-type">DOMAIN-SUFFIX</td>
+                <td>youtube.com</td>
+                <td><span class="policy-chip">YouTube</span></td>
+                <td>视频</td>
+              </tr>
+              <tr>
+                <td>4</td>
+                <td class="rule-type">MATCH</td>
+                <td>-</td>
+                <td><span class="policy-chip">Proxy</span></td>
+                <td>最终规则</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+      </section>
+
+      <div class="context-menu" aria-label="策略组右键菜单">
+        <div class="menu-item"><span>编辑策略组...</span></div>
+        <div class="menu-item"><span>创建副本</span></div>
+        <div class="menu-item"><span>删除策略组...</span></div>
+        <div class="menu-line"></div>
+        <div class="menu-item"><span>延迟测试</span></div>
+        <div class="menu-line"></div>
+        <div class="menu-item"><span>All Server</span><span class="delay">258 ms</span></div>
+        <div class="menu-item"><span>🇺🇸 US OwO</span><span class="delay">258 ms</span></div>
+        <div class="menu-item checked"><span>🇺🇸 US DMIT</span><span class="delay">157 ms</span></div>
+        <div class="menu-item"><span>🇯🇵 JP RFC</span><span class="delay">112 ms</span></div>
+      </div>
+
+      <div class="modal-backdrop">
+        <section class="wizard" aria-label="新建策略组向导">
+          <header class="wizard-head">
+            <h2 class="wizard-title">策略组</h2>
+            <p class="wizard-subtitle">选择包含的策略</p>
+          </header>
+          <div class="wizard-body">
+            <div>
+              <h3 style="margin: 0 0 14px; font-size: 17px;">选择子策略</h3>
+              <div class="surge-table">
+                <div class="surge-table-row head"><div></div><div>策略</div></div>
+                <div class="surge-table-row"><div class="check-box on">✓</div><div>DIRECT</div></div>
+                <div class="surge-table-row"><div class="check-box"></div><div>REJECT</div></div>
+                <div class="surge-table-row"><div class="check-box on">✓</div><div>🇺🇸 US OwO</div></div>
+                <div class="surge-table-row"><div class="check-box on">✓</div><div>🇺🇸 US DMIT</div></div>
+                <div class="surge-table-row"><div class="check-box"></div><div>🇯🇵 JP GREEN</div></div>
+                <div class="surge-table-row"><div class="check-box on">✓</div><div>Proxy</div></div>
+                <div class="surge-table-row"><div class="check-box"></div><div>OpenAI</div></div>
+              </div>
+            </div>
+
+            <div class="wizard-options">
+              <div class="option">
+                <div class="option-title"><span class="check-box on">✓</span>同时包含外部策略</div>
+                <div class="option-text">从订阅 provider 中展开具体节点，并允许用正则过滤。</div>
+                <input class="input" value="https://example.com/subscription" />
+              </div>
+              <div class="option">
+                <div class="option-title"><span class="check-box"></span>同时包含其他策略组的策略</div>
+                <div class="option-text">将其他策略组中的子策略复制到该策略组。</div>
+              </div>
+              <div class="option">
+                <div class="option-title"><span class="check-box"></span>包含过滤</div>
+                <div class="option-text">只包含名称匹配正则的节点。</div>
+                <input class="input" placeholder="^(🇺🇸|US|美国)" />
+              </div>
+            </div>
+          </div>
+          <footer class="wizard-foot">
+            <button class="ghost-button">取消</button>
+            <div class="foot-right">
+              <button class="ghost-button">返回</button>
+              <button class="primary-button">下一步</button>
+            </div>
+          </footer>
+        </section>
+      </div>
+    </main>
+  </div>
+</body>
+</html>
