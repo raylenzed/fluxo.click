@@ -12,6 +12,7 @@ import { formatBytes, cn } from "@/lib/utils";
 import { useRealtimeConnections } from "@/lib/hooks/use-connections";
 import type { Connection } from "@/lib/hooks/use-connections";
 import { mihomoApi } from "@/lib/api";
+import { usePageSearch } from "@/lib/page-search";
 
 interface DisplayConnection {
   id: string;
@@ -131,6 +132,7 @@ function mapConnection(conn: Connection): DisplayConnection {
 
 export default function ActivityPage() {
   const { t } = useLocale();
+  const { query: pageSearch } = usePageSearch();
   const liveState = useRealtimeConnections();
   const [paused, setPaused] = useState(false);
   const [snapshot, setSnapshot] = useState(liveState);
@@ -146,7 +148,12 @@ export default function ActivityPage() {
   const filtered = allConnections.filter((c) => {
     if (policyFilter !== "all" && c.policy !== policyFilter) return false;
     if (methodFilter !== "all" && c.method !== methodFilter) return false;
-    if (search && !c.host.toLowerCase().includes(search.toLowerCase())) return false;
+    const effectiveSearch = (pageSearch || search).trim().toLocaleLowerCase();
+    if (
+      effectiveSearch &&
+      ![c.host, c.method, c.policy, c.process, c.rule, ...c.chain]
+        .some((value) => value.toLocaleLowerCase().includes(effectiveSearch))
+    ) return false;
     return true;
   });
 

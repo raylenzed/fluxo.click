@@ -1,6 +1,6 @@
 "use client";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { proxiesApi, groupsApi, rulesApi, settingsApi, profilesApi, mihomoApi } from '../api';
+import { proxiesApi, groupsApi, rulesApi, ruleProvidersApi, settingsApi, profilesApi, mihomoApi } from '../api';
 import { toast } from 'sonner';
 
 function downloadYaml(filename: string, content: string) {
@@ -139,6 +139,15 @@ export function useReorderRules() {
     mutationFn: rulesApi.reorder,
     onSuccess: () => qc.invalidateQueries({ queryKey: ['rules'] }),
     onError: (e: Error) => toast.error(`Failed: ${e.message}`),
+  });
+}
+
+export function useRuleProviders(options: { enabled?: boolean } = {}) {
+  return useQuery({
+    queryKey: ['rule-providers'],
+    queryFn: ruleProvidersApi.list,
+    staleTime: 30_000,
+    enabled: options.enabled,
   });
 }
 

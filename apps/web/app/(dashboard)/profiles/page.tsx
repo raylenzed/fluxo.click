@@ -16,6 +16,7 @@ import { useLocale } from "@/lib/i18n/context";
 import { profilesApi } from "@/lib/api";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { usePageSearch } from "@/lib/page-search";
 
 
 interface Profile {
@@ -42,6 +43,13 @@ export default function ProfilesPage() {
   const { t } = useLocale();
   const qc = useQueryClient();
   const { data: profiles = [], isLoading } = useProfiles();
+  const { query } = usePageSearch();
+  const normalizedQuery = query.trim().toLocaleLowerCase();
+  const filteredProfiles = profiles.filter((profile) => {
+    if (!normalizedQuery) return true;
+    return [profile.name, profile.description]
+      .some((value) => value.toLocaleLowerCase().includes(normalizedQuery));
+  });
 
   const [showNewDialog, setShowNewDialog] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
@@ -193,9 +201,11 @@ export default function ProfilesPage() {
           <div className="text-center py-12 text-sm text-[var(--muted)]">
             {pT.noProfilesYet}
           </div>
+        ) : filteredProfiles.length === 0 ? (
+          <div className="py-12 text-center text-sm text-[var(--muted)]">{t.topbar.searchNoResults}</div>
         ) : (
           <div className="space-y-3">
-            {profiles.map((profile) => {
+            {filteredProfiles.map((profile) => {
               const isActive = Boolean(profile.is_active);
               return (
                 <Card

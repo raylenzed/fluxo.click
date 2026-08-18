@@ -27,6 +27,7 @@ import { proxiesApi, providersApi, type ProxyRow, type GroupRow, type ProviderRo
 import { toast } from "sonner";
 import { useLocale } from "@/lib/i18n/context";
 import { useDesktopMode } from "@/lib/desktop";
+import { usePageSearch } from "@/lib/page-search";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const groupTypeIcons = {
@@ -513,6 +514,7 @@ export default function PoliciesPage() {
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
   const [latencyOverrides, setLatencyOverrides] = useState<Record<string, number>>({});
   const { t } = useLocale();
+  const { query } = usePageSearch();
   const queryClient = useQueryClient();
 
   async function persistNodeLatency(nodeId: string, latency: number) {
@@ -667,6 +669,17 @@ export default function PoliciesPage() {
   const proxyNodes = proxiesQuery.data ?? [];
   const proxyGroups = groupsQuery.data ?? [];
   const providers = providersQuery.data ?? [];
+  const normalizedQuery = query.trim().toLocaleLowerCase();
+  const filteredProxyNodes = proxyNodes.filter((node) => {
+    if (!normalizedQuery) return true;
+    return [node.name, node.type, node.server, node.port]
+      .some((value) => String(value ?? "").toLocaleLowerCase().includes(normalizedQuery));
+  });
+  const filteredProxyGroups = proxyGroups.filter((group) => {
+    if (!normalizedQuery) return true;
+    return [group.name, group.type, group.filter, group.strategy, group.proxies]
+      .some((value) => String(value ?? "").toLocaleLowerCase().includes(normalizedQuery));
+  });
   const runtimeProxyMap = desktopMode ? null : runtimeProxiesQuery.data?.proxies ?? null;
   const runtimeReady = desktopMode ? true : Boolean(runtimeProxyMap);
   const runtimeLoadedNames = runtimeProxyMap ? new Set(Object.keys(runtimeProxyMap)) : null;
@@ -748,7 +761,7 @@ export default function PoliciesPage() {
         <section className="mb-10">
           <SectionHeader
             title={t.policies.proxyNodes}
-            count={proxyNodes.length}
+            count={filteredProxyNodes.length}
             accent
             action={
               proxyNodes.length > 0 ? (
@@ -766,7 +779,7 @@ export default function PoliciesPage() {
             <ApiError />
           ) : (
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
-              {proxyNodes.map((node) => {
+              {filteredProxyNodes.map((node) => {
                 const latency = readProxyLatency(node.config);
                 const loadedInRuntime = runtimeLoadedNames ? runtimeLoadedNames.has(node.name) : true;
 
@@ -827,7 +840,7 @@ export default function PoliciesPage() {
         <section>
           <SectionHeader
             title={t.policies.policyGroups}
-            count={proxyGroups.length}
+            count={filteredProxyGroups.length}
             action={
               <Button size="sm" variant="secondary" onClick={() => setShowNewGroup(true)} className="h-8 gap-1.5 rounded-[7px] px-3 text-xs">
                 <Plus className="h-3.5 w-3.5" />
@@ -842,7 +855,7 @@ export default function PoliciesPage() {
             <ApiError />
           ) : (
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
-              {proxyGroups.map((group) => (
+              {filteredProxyGroups.map((group) => (
                 <GroupCard
                   key={group.id}
                   group={group}

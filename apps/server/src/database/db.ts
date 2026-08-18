@@ -4,6 +4,7 @@ import fs from 'fs';
 import crypto from 'crypto';
 import yaml from 'js-yaml';
 import { CREATE_TABLES_SQL } from './schema';
+import { backfillRuleProviderRules } from '../modules/rule-provider/rule-provider.sync';
 
 const DB_PATH = process.env.DB_PATH || path.join(process.cwd(), 'data', 'fluxo.db');
 
@@ -108,6 +109,10 @@ function runMigrations(db: Database.Database) {
     addColumn(db, 'dns_config', 'mode', "TEXT DEFAULT 'fake-ip'");
     addColumn(db, 'dns_config', 'use_hosts', 'INTEGER DEFAULT 1');
     addColumn(db, 'dns_config', 'enhanced_mode', 'INTEGER DEFAULT 1');
+  });
+
+  applyMigration(db, '20260725_backfill_rule_provider_rules', () => {
+    backfillRuleProviderRules(db);
   });
 }
 

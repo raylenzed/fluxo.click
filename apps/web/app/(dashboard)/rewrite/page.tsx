@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2, Loader2, Database, Globe, Map } from "lucide-react";
+import { Plus, Trash2, Loader2, Database, Globe, Map, Pencil } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,7 @@ import { Topbar } from "@/components/layout/topbar";
 import { useLocale } from "@/lib/i18n/context";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { usePageSearch } from "@/lib/page-search";
 
 
 interface RuleProvider {
@@ -76,13 +77,28 @@ export default function RuleProvidersPage() {
   const qc = useQueryClient();
   const { data: providers = [], isLoading } = useRuleProviders();
   const { data: groups = [] } = useGroups();
+  const { query } = usePageSearch();
+  const normalizedQuery = query.trim().toLocaleLowerCase();
+  const filteredProviders = providers.filter((provider) => {
+    if (!normalizedQuery) return true;
+    return [
+      provider.name,
+      provider.type,
+      provider.behavior,
+      provider.url,
+      provider.path,
+      provider.policy,
+    ].some((value) => String(value ?? "").toLocaleLowerCase().includes(normalizedQuery));
+  });
 
   const [showDialog, setShowDialog] = useState(false);
+  const [editingProvider, setEditingProvider] = useState<RuleProvider | null>(null);
   const [form, setForm] = useState({
     name: "",
     type: "http",
     behavior: "domain",
     url: "",
+    path: "",
     policy: "DIRECT",
     interval: "86400",
   });
@@ -112,7 +128,7 @@ export default function RuleProvidersPage() {
   ];
 
   const createMutation = useMutation({
-    mutationFn: async (data: { name: string; type: string; behavior: string; url?: string; interval: number; policy: string }) => {
+    mutationFn: async (data: { name: string; type: string; behavior: string; url?: string; path?: string; interval: number; policy: string }) => {
       const res = await fetch(`/api/rule-providers`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -123,11 +139,35 @@ export default function RuleProvidersPage() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["rule-providers"] });
+      qc.invalidateQueries({ queryKey: ["rules"] });
       toast.success(rT.ruleSetAdded);
       setShowDialog(false);
-      setForm({ name: "", type: "http", behavior: "domain", url: "", policy: "DIRECT", interval: "86400" });
+      setForm({ name: "", type: "http", behavior: "domain", url: "", path: "", policy: "DIRECT", interval: "86400" });
     },
     onError: () => toast.error(rT.ruleSetAddFailed),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }: {
+      id: string;
+      data: { name: string; type: string; behavior: string; url?: string; path?: string; interval: number; policy: string };
+    }) => {
+      const res = await fetch(`/api/rule-providers/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error("Failed to update");
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["rule-providers"] });
+      qc.invalidateQueries({ queryKey: ["rules"] });
+      toast.success(rT.ruleSetUpdated);
+      setShowDialog(false);
+      setEditingProvider(null);
+    },
+    onError: () => toast.error(rT.ruleSetUpdateFailed),
   });
 
   const deleteMutation = useMutation({
@@ -136,21 +176,51 @@ export default function RuleProvidersPage() {
       if (!res.ok) throw new Error("Failed to delete");
       return res.json();
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["rule-providers"] }); toast.success(rT.ruleSetDeleted); },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["rule-providers"] });
+      qc.invalidateQueries({ queryKey: ["rules"] });
+      toast.success(rT.ruleSetDeleted);
+    },
     onError: () => toast.error(rT.ruleSetDeleteFailed),
   });
 
   const handleSubmit = () => {
     if (!form.name.trim()) return;
-    createMutation.mutate({
+    const data = {
       name: form.name.trim(),
       type: form.type,
       behavior: form.behavior,
       ...(form.url.trim() ? { url: form.url.trim() } : {}),
+      ...(form.path.trim() ? { path: form.path.trim() } : {}),
       interval: Number(form.interval),
       policy: form.policy,
-    });
+    };
+    if (editingProvider) {
+      updateMutation.mutate({ id: editingProvider.id, data });
+    } else {
+      createMutation.mutate(data);
+    }
     // Dialog closes in onSuccess to preserve form data on error
+  };
+
+  const openCreateDialog = () => {
+    setEditingProvider(null);
+    setForm({ name: "", type: "http", behavior: "domain", url: "", path: "", policy: "DIRECT", interval: "86400" });
+    setShowDialog(true);
+  };
+
+  const openEditDialog = (provider: RuleProvider) => {
+    setEditingProvider(provider);
+    setForm({
+      name: provider.name,
+      type: provider.type,
+      behavior: provider.behavior,
+      url: provider.url ?? "",
+      path: provider.path ?? "",
+      policy: provider.policy,
+      interval: String(provider.interval),
+    });
+    setShowDialog(true);
   };
 
   const handleQuickAdd = (item: typeof defaultQuickAdd[0]) => {
@@ -160,7 +230,7 @@ export default function RuleProvidersPage() {
   return (
     <div className="flex flex-col h-full">
       <Topbar title={rT.title} description={rT.subtitle}>
-        <Button onClick={() => setShowDialog(true)} size="sm" className="gap-1.5 text-xs bg-[var(--brand-500)] hover:bg-[var(--brand-600)] text-white">
+        <Button onClick={openCreateDialog} size="sm" className="gap-1.5 text-xs bg-[var(--brand-500)] hover:bg-[var(--brand-600)] text-white">
           <Plus className="h-3.5 w-3.5" />
           {rT.addRuleSet}
         </Button>
@@ -222,7 +292,7 @@ export default function RuleProvidersPage() {
               <span className="w-8" />
             </div>
             <CardContent className="pt-2 pb-2 px-2 space-y-0.5">
-              {providers.map((p) => (
+              {filteredProviders.map((p) => (
                 <div key={p.id} className="grid grid-cols-[1fr_auto_auto_auto_auto_auto] gap-4 items-center rounded-[10px] px-2 py-2.5 hover:bg-[var(--surface-2)] group">
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-[var(--foreground)] truncate">{p.name}</p>
@@ -246,7 +316,15 @@ export default function RuleProvidersPage() {
                   <div className="w-20 hidden md:block">
                     <span className="text-xs text-[var(--muted)]">{new Date(p.updated_at).toLocaleDateString()}</span>
                   </div>
-                  <div className="w-8">
+                  <div className="flex w-16">
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      className="opacity-0 group-hover:opacity-100 text-[var(--muted)] transition-opacity"
+                      onClick={() => openEditDialog(p)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
                     <Button
                       variant="ghost"
                       size="icon-sm"
@@ -264,10 +342,16 @@ export default function RuleProvidersPage() {
         )}
       </div>
 
-      <Dialog open={showDialog} onOpenChange={setShowDialog}>
+      <Dialog
+        open={showDialog}
+        onOpenChange={(open) => {
+          setShowDialog(open);
+          if (!open) setEditingProvider(null);
+        }}
+      >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{rT.addRuleSet}</DialogTitle>
+            <DialogTitle>{editingProvider ? rT.editRuleSet : rT.addRuleSet}</DialogTitle>
             <DialogDescription>{rT.addRuleSetDescription}</DialogDescription>
           </DialogHeader>
           <div className="px-6 pb-2 space-y-4">
@@ -298,10 +382,17 @@ export default function RuleProvidersPage() {
                 </Select>
               </div>
             </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-[var(--foreground)]">{rT.urlLabel}</label>
-              <Input value={form.url} onChange={(e) => setForm((f) => ({ ...f, url: e.target.value }))} placeholder="https://cdn.jsdelivr.net/..." className="font-mono text-xs" />
-            </div>
+            {form.type === "file" ? (
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-[var(--foreground)]">{rT.pathLabel}</label>
+                <Input value={form.path} onChange={(e) => setForm((f) => ({ ...f, path: e.target.value }))} placeholder="./rule-providers/custom.yaml" className="font-mono text-xs" />
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-[var(--foreground)]">{rT.urlLabel}</label>
+                <Input value={form.url} onChange={(e) => setForm((f) => ({ ...f, url: e.target.value }))} placeholder="https://cdn.jsdelivr.net/..." className="font-mono text-xs" />
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-[var(--foreground)]">{rT.policyLabel}</label>
@@ -324,7 +415,17 @@ export default function RuleProvidersPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDialog(false)}>{rT.cancel}</Button>
-            <Button onClick={handleSubmit} className="bg-[var(--brand-500)] hover:bg-[var(--brand-600)] text-white">{rT.add}</Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={
+                createMutation.isPending ||
+                updateMutation.isPending ||
+                (form.type === "http" ? !form.url.trim() : !form.path.trim())
+              }
+              className="bg-[var(--brand-500)] hover:bg-[var(--brand-600)] text-white"
+            >
+              {editingProvider ? t.common.save : rT.add}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
